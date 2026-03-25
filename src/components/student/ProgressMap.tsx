@@ -157,7 +157,8 @@ export default function ProgressMap({
     // Deterministic pseudo-random based on index to avoid hydration mismatch
     function seededRandom(seed: number): number {
       const x = Math.sin(seed * 9301 + 49297) * 49297;
-      return x - Math.floor(x);
+      const r = x - Math.floor(x);
+      return Math.round(r * 1000) / 1000;
     }
 
     const decos: React.ReactNode[] = [];
