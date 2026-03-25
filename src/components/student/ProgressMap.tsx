@@ -99,7 +99,7 @@ export default function ProgressMap({
   const mapWidth = 520;
   const nodeSpacingY = 140;
   const centerX = mapWidth / 2;
-  const amplitude = 100;
+  const amplitude = 160;
   const topPadding = 120;
   const bottomPadding = 100;
 
@@ -112,7 +112,7 @@ export default function ProgressMap({
 
   const nodes = sortedSessions.map((session, index) => {
     const cy = totalHeight - bottomPadding - index * nodeSpacingY;
-    const cx = centerX + Math.sin((index * Math.PI) / 2.2) * amplitude;
+    const cx = centerX + Math.sin((index * Math.PI) / 2.2 - Math.PI / 2) * amplitude;
     return { ...session, cx, cy };
   });
 
@@ -121,18 +121,13 @@ export default function ProgressMap({
     .reduce((max, s) => Math.max(max, s.sessionNumber), 0);
 
   useEffect(() => {
-    if (containerRef.current && latestSessionNumber > 0) {
-      const latestNode = nodes.find(
-        (n) => n.sessionNumber === latestSessionNumber
-      );
-      if (latestNode) {
-        containerRef.current.scrollTo({
-          top: latestNode.cy - window.innerHeight / 2,
-          behavior: "smooth",
-        });
-      }
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
-  }, [latestSessionNumber, nodes]);
+  }, []);
 
   function buildRoadPath(
     x1: number, y1: number,
@@ -234,17 +229,18 @@ export default function ProgressMap({
 
             return (
               <g key={`road-${node.sessionNumber}`}>
-                <path d={d} fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth={30} strokeLinecap="round" />
-                <path d={d} fill="none" stroke="#2A2A2A" strokeWidth={24} strokeLinecap="round" />
-                <path d={d} fill="none" stroke="#C4A265" strokeWidth={26} strokeLinecap="round" opacity={0.06} />
+                <path d={d} fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth={36} strokeLinecap="round" />
+                <path d={d} fill="none" stroke="#3A3A3A" strokeWidth={28} strokeLinecap="round" />
+                <path d={d} fill="none" stroke="#C4A265" strokeWidth={30} strokeLinecap="round" opacity={0.12} />
+                <path d={d} fill="none" stroke="#4A4A4A" strokeWidth={28} strokeLinecap="round" opacity={0.3} />
                 <path
                   d={d}
                   fill="none"
-                  stroke={node.status === "locked" ? "#444" : "#C4A265"}
-                  strokeWidth={1.5}
+                  stroke={node.status === "locked" ? "#555" : "#C4A265"}
+                  strokeWidth={2}
                   strokeLinecap="round"
-                  strokeDasharray="14 10"
-                  opacity={node.status === "locked" ? 0.15 : 0.3}
+                  strokeDasharray="16 10"
+                  opacity={node.status === "locked" ? 0.3 : 0.5}
                   className={node.status !== "locked" ? "animate-road-dash" : ""}
                 />
               </g>

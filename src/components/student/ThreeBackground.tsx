@@ -5,27 +5,22 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float } from "@react-three/drei";
 import * as THREE from "three";
 
-/* ─── Sparkle Particles (tiny candy-colored glitter) ─── */
-function Sparkles({ count = 120 }: { count?: number }) {
+/* ─── Floating Code Particles (data stream effect) ─── */
+function FloatingCode({ count = 80 }: { count?: number }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const particles = useMemo(() => {
-    const candyColors = [
-      "#FF6B9D", "#FFD700", "#FF85B3", "#FFA3C4",
-      "#FF4081", "#E040FB", "#FFAB40", "#69F0AE",
-    ];
-    return Array.from({ length: count }, () => ({
+    const techColors = ["#C4A265", "#4ADE80", "#A78BFA", "#60A5FA", "#34D399"];
+    return Array.from({ length: count }, (_, i) => ({
       position: [
         (Math.random() - 0.5) * 24,
         (Math.random() - 0.5) * 40,
-        (Math.random() - 0.5) * 8 - 2,
+        (Math.random() - 0.5) * 8 - 3,
       ] as [number, number, number],
-      scale: Math.random() * 0.08 + 0.02,
-      speed: Math.random() * 0.4 + 0.1,
-      twinkleOffset: Math.random() * Math.PI * 2,
-      color: new THREE.Color(
-        candyColors[Math.floor(Math.random() * candyColors.length)]
-      ),
+      scale: Math.random() * 0.06 + 0.015,
+      speed: Math.random() * 0.3 + 0.05,
+      driftOffset: Math.random() * Math.PI * 2,
+      color: new THREE.Color(techColors[i % techColors.length]),
     }));
   }, [count]);
 
@@ -35,13 +30,13 @@ function Sparkles({ count = 120 }: { count?: number }) {
     const dummy = new THREE.Object3D();
 
     particles.forEach((p, i) => {
-      const twinkle = Math.sin(time * 2 + p.twinkleOffset) * 0.5 + 0.5;
+      const twinkle = Math.sin(time * 1.5 + p.driftOffset) * 0.5 + 0.5;
       dummy.position.set(
-        p.position[0] + Math.sin(time * p.speed + i) * 0.8,
-        p.position[1] + Math.cos(time * p.speed * 0.7 + i * 0.5) * 0.6,
-        p.position[2] + Math.sin(time * 0.3 + i) * 0.3
+        p.position[0] + Math.sin(time * p.speed * 0.5 + i) * 0.5,
+        p.position[1] + ((time * p.speed * 0.8 + i * 3) % 40) - 20,
+        p.position[2] + Math.sin(time * 0.2 + i) * 0.2
       );
-      dummy.scale.setScalar(p.scale * (0.5 + twinkle * 0.8));
+      dummy.scale.setScalar(p.scale * (0.4 + twinkle * 0.6));
       dummy.updateMatrix();
       meshRef.current!.setMatrixAt(i, dummy.matrix);
     });
@@ -52,55 +47,85 @@ function Sparkles({ count = 120 }: { count?: number }) {
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
       <sphereGeometry args={[1, 6, 6]} />
-      <meshBasicMaterial color="#FFD700" transparent opacity={0.7} />
+      <meshBasicMaterial color="#C4A265" transparent opacity={0.6} />
     </instancedMesh>
   );
 }
 
-/* ─── Floating Candy Orbs (lollipops / candy balls in the sky) ─── */
-function CandyOrbs() {
-  const candyConfigs = useMemo(
+/* ─── Circuit Board Lines ─── */
+function CircuitLines() {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.z =
+        Math.sin(state.clock.elapsedTime * 0.05) * 0.02;
+    }
+  });
+
+  const lines = useMemo(
+    () =>
+      Array.from({ length: 8 }, (_, i) => ({
+        y: -16 + i * 5,
+        x: (i % 2 === 0 ? -1 : 1) * (4 + (i * 1.3) % 3),
+        length: 1.5 + (i * 0.7) % 2.5,
+        color: i % 2 === 0 ? "#C4A265" : "#4ADE80",
+        angle: ((i * 0.4) % 1) * Math.PI * 0.3 * (i % 2 === 0 ? 1 : -1),
+      })),
+    []
+  );
+
+  return (
+    <group ref={groupRef}>
+      {lines.map((l, i) => (
+        <Float key={i} speed={0.3} floatIntensity={0.8}>
+          <mesh position={[l.x, l.y, -12]} rotation={[0, 0, l.angle]}>
+            <cylinderGeometry args={[0.015, 0.015, l.length, 4]} />
+            <meshBasicMaterial color={l.color} transparent opacity={0.15} />
+          </mesh>
+          {/* Node dot at end of circuit line */}
+          <mesh position={[l.x, l.y + l.length * 0.5, -12]}>
+            <sphereGeometry args={[0.04, 6, 6]} />
+            <meshBasicMaterial color={l.color} transparent opacity={0.3} />
+          </mesh>
+        </Float>
+      ))}
+    </group>
+  );
+}
+
+/* ─── Low-Poly Trees ─── */
+function Trees() {
+  const trees = useMemo(
     () => [
-      { color: "#FF6B9D", size: 0.5, pos: [-5, 8, -6] as [number, number, number] },
-      { color: "#FFD700", size: 0.35, pos: [6, -4, -5] as [number, number, number] },
-      { color: "#FF85B3", size: 0.6, pos: [-7, -10, -7] as [number, number, number] },
-      { color: "#E040FB", size: 0.4, pos: [8, 5, -4] as [number, number, number] },
-      { color: "#FFAB40", size: 0.45, pos: [-3, 14, -6] as [number, number, number] },
-      { color: "#69F0AE", size: 0.3, pos: [4, -12, -5] as [number, number, number] },
-      { color: "#FF4081", size: 0.55, pos: [7, 12, -8] as [number, number, number] },
-      { color: "#FFA3C4", size: 0.38, pos: [-8, 0, -6] as [number, number, number] },
+      { pos: [-8, -12, -8] as [number, number, number], scale: 0.7 },
+      { pos: [9, -8, -9] as [number, number, number], scale: 0.5 },
+      { pos: [-10, 4, -10] as [number, number, number], scale: 0.8 },
+      { pos: [7, 10, -7] as [number, number, number], scale: 0.6 },
+      { pos: [-6, 16, -9] as [number, number, number], scale: 0.55 },
     ],
     []
   );
 
   return (
     <>
-      {candyConfigs.map((candy, i) => (
-        <Float
-          key={i}
-          speed={0.8 + Math.random() * 0.5}
-          rotationIntensity={0.3}
-          floatIntensity={2.5}
-          position={candy.pos}
-        >
-          <group>
-            {/* Candy sphere with glossy look */}
-            <mesh>
-              <sphereGeometry args={[candy.size, 16, 16]} />
-              <meshBasicMaterial
-                color={candy.color}
-                transparent
-                opacity={0.35}
-              />
+      {trees.map((tree, i) => (
+        <Float key={i} speed={0.2} floatIntensity={0.4} rotationIntensity={0.05}>
+          <group position={tree.pos} scale={tree.scale}>
+            {/* Trunk */}
+            <mesh position={[0, 0, 0]}>
+              <cylinderGeometry args={[0.08, 0.12, 0.8, 6]} />
+              <meshBasicMaterial color="#5C3D2E" transparent opacity={0.4} />
             </mesh>
-            {/* Inner brighter core */}
-            <mesh>
-              <sphereGeometry args={[candy.size * 0.6, 12, 12]} />
-              <meshBasicMaterial
-                color="#ffffff"
-                transparent
-                opacity={0.15}
-              />
+            {/* Foliage - bottom cone */}
+            <mesh position={[0, 0.7, 0]}>
+              <coneGeometry args={[0.5, 0.9, 6]} />
+              <meshBasicMaterial color="#1B5E20" transparent opacity={0.3} />
+            </mesh>
+            {/* Foliage - top cone */}
+            <mesh position={[0, 1.2, 0]}>
+              <coneGeometry args={[0.35, 0.7, 6]} />
+              <meshBasicMaterial color="#2E7D32" transparent opacity={0.3} />
             </mesh>
           </group>
         </Float>
@@ -109,38 +134,77 @@ function CandyOrbs() {
   );
 }
 
-/* ─── Candy Cane Streaks (thin rotating lines) ─── */
-function CandyCaneStreaks() {
-  const groupRef = useRef<THREE.Group>(null);
+/* ─── Moving Cars ─── */
+function MovingCars() {
+  const carsRef = useRef<THREE.Group>(null);
 
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.1) * 0.05;
-    }
-  });
-
-  const streaks = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, i) => ({
-        y: -15 + i * 6,
-        x: (i % 2 === 0 ? -1 : 1) * (3 + Math.random() * 4),
-        length: 2 + Math.random() * 3,
-        color: i % 3 === 0 ? "#FF6B9D" : i % 3 === 1 ? "#FFD700" : "#FF85B3",
-      })),
+  const cars = useMemo(
+    () => [
+      { y: -6, z: -6, speed: 0.8, color: "#C4A265", dir: 1 },
+      { y: 3, z: -8, speed: 0.5, color: "#60A5FA", dir: -1 },
+      { y: 12, z: -7, speed: 0.65, color: "#F87171", dir: 1 },
+    ],
     []
   );
 
+  useFrame((state) => {
+    if (!carsRef.current) return;
+    const time = state.clock.elapsedTime;
+
+    carsRef.current.children.forEach((carGroup, i) => {
+      const car = cars[i];
+      // Loop car across viewport (-14 to 14)
+      const x = ((time * car.speed * car.dir + i * 9) % 28) - 14;
+      carGroup.position.x = x;
+    });
+  });
+
   return (
-    <group ref={groupRef}>
-      {streaks.map((s, i) => (
-        <Float key={i} speed={0.5} floatIntensity={1}>
-          <mesh position={[s.x, s.y, -10]} rotation={[0, 0, Math.PI * 0.15 * (i % 2 === 0 ? 1 : -1)]}>
-            <cylinderGeometry args={[0.03, 0.03, s.length, 6]} />
-            <meshBasicMaterial color={s.color} transparent opacity={0.2} />
+    <group ref={carsRef}>
+      {cars.map((car, i) => (
+        <group key={i} position={[0, car.y, car.z]}>
+          {/* Car body */}
+          <mesh>
+            <boxGeometry args={[0.6, 0.2, 0.3]} />
+            <meshBasicMaterial color={car.color} transparent opacity={0.35} />
           </mesh>
-        </Float>
+          {/* Car cabin */}
+          <mesh position={[0, 0.15, 0]}>
+            <boxGeometry args={[0.3, 0.15, 0.25]} />
+            <meshBasicMaterial color={car.color} transparent opacity={0.25} />
+          </mesh>
+          {/* Headlight */}
+          <mesh position={[0.35 * car.dir, 0, 0]}>
+            <sphereGeometry args={[0.04, 6, 6]} />
+            <meshBasicMaterial color="#FBBF24" transparent opacity={0.7} />
+          </mesh>
+        </group>
       ))}
     </group>
+  );
+}
+
+/* ─── AI Brain (wireframe icosahedron) ─── */
+function AIBrain() {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x = state.clock.elapsedTime * 0.1;
+      meshRef.current.rotation.y = state.clock.elapsedTime * 0.15;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 0, -15]}>
+      <icosahedronGeometry args={[3, 1]} />
+      <meshBasicMaterial
+        color="#C4A265"
+        wireframe
+        transparent
+        opacity={0.06}
+      />
+    </mesh>
   );
 }
 
@@ -153,9 +217,11 @@ export default function ThreeBackground() {
         gl={{ alpha: true, antialias: false }}
         style={{ background: "transparent" }}
       >
-        <Sparkles count={120} />
-        <CandyOrbs />
-        <CandyCaneStreaks />
+        <FloatingCode count={80} />
+        <CircuitLines />
+        <Trees />
+        <MovingCars />
+        <AIBrain />
       </Canvas>
     </div>
   );

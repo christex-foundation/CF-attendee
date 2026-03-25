@@ -40,7 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# images
+# images (root level only)
 *.jpg
 *.jpeg
 *.png
@@ -48,3 +48,7 @@ next-env.d.ts
 *.svg
 *.webp
 *.ico
+
+# but keep images needed by the app
+!public/**
+!src/**

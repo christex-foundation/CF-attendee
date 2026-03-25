@@ -1,6 +1,7 @@
 "use client";
 
 import ProgressMap from "@/components/student/ProgressMap";
+import ThreeBackground from "@/components/student/ThreeBackground";
 import type { SideQuestNode } from "@/types";
 
 interface Session {
@@ -27,7 +28,7 @@ export default function StudentMapClient({
 }: Props) {
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0A0A0A]">
-
+      <ThreeBackground />
       <ProgressMap
         sessions={sessions}
         studentName={studentName}
