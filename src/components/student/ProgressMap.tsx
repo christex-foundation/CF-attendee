@@ -6,6 +6,7 @@ import MapNode from "./MapNode";
 import SideQuestNodeComp from "./SideQuestNode";
 import SideQuestPanel from "./SideQuestPanel";
 import StudentStats from "./StudentStats";
+import StudentAvatar from "@/components/ui/StudentAvatar";
 import type { SideQuestNode } from "@/types";
 
 interface Session {
@@ -185,13 +186,16 @@ export default function ProgressMap({
     <div className="relative z-10 flex flex-col items-center min-h-screen">
       {/* Header */}
       <div className="pt-6 pb-2 text-center relative z-20">
-        <div className="inline-block px-8 py-4 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl">
-          <h1 className="text-2xl font-extrabold text-white tracking-wide">
-            {studentName}
-          </h1>
-          <p className="text-[#C4A265] text-xs font-semibold tracking-widest uppercase mt-1">
-            Attendance Journey
-          </p>
+        <div className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl">
+          <StudentAvatar slug={studentSlug} name={studentName} size={48} />
+          <div>
+            <h1 className="text-2xl font-extrabold text-white tracking-wide">
+              {studentName}
+            </h1>
+            <p className="text-[#C4A265] text-xs font-semibold tracking-widest uppercase mt-1">
+              Attendance Journey
+            </p>
+          </div>
         </div>
         <StudentStats
           totalPoints={stats.totalPoints}

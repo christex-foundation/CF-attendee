@@ -8,6 +8,7 @@ import ChallengesList from "@/components/admin/ChallengesList";
 import TaskSubmissionsModal from "@/components/admin/TaskSubmissionsModal";
 import AddPointsModal from "@/components/admin/AddPointsModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
+import StudentAvatar from "@/components/ui/StudentAvatar";
 import type { Student, Challenge } from "@/types";
 
 type Tab = "students" | "challenges";
@@ -193,9 +194,7 @@ export default function DashboardPage() {
                       <tr key={student.id} className="border-b border-[#F5F0EB] last:border-0 hover:bg-[#FDFAF7] transition">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#F5E6D3] flex items-center justify-center text-xs font-bold text-[#8B7355]">
-                              {student.name.charAt(0).toUpperCase()}
-                            </div>
+                            <StudentAvatar slug={student.slug} name={student.name} size={32} />
                             <span className="font-medium text-[#1A1A1A]">{student.name}</span>
                           </div>
                         </td>
@@ -228,9 +227,7 @@ export default function DashboardPage() {
                 {students.map((student) => (
                   <div key={student.id} className="bg-white rounded-2xl border border-[#E8E0D8] p-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-[#F5E6D3] flex items-center justify-center text-sm font-bold text-[#8B7355]">
-                        {student.name.charAt(0).toUpperCase()}
-                      </div>
+                      <StudentAvatar slug={student.slug} name={student.name} size={40} />
                       <div>
                         <span className="font-semibold text-[#1A1A1A] block">{student.name}</span>
                         <span className="text-xs text-[#8B7355] font-mono">{student.slug}</span>

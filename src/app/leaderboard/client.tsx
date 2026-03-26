@@ -4,6 +4,8 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import StudentAvatar from "@/components/ui/StudentAvatar";
+import { getDiceBearUrl } from "@/lib/avatar";
 
 const LeaderboardBackground = dynamic(
   () => import("@/components/leaderboard/LeaderboardBackground"),
@@ -228,6 +230,9 @@ function StudentMarker({
               <stop offset="0%" stopColor={`hsl(${hue}, 50%, 55%)`} />
               <stop offset="100%" stopColor={`hsl(${hue}, 55%, 30%)`} />
             </radialGradient>
+            <clipPath id={`clip-${entry.id}`}>
+              <circle cx={cx} cy={cy} r={r} />
+            </clipPath>
           </defs>
 
           {/* Tether */}
@@ -257,19 +262,19 @@ function StudentMarker({
           {/* Ring */}
           <circle cx={cx} cy={cy} r={r + 3} fill={colors.ring} />
 
-          {/* Avatar */}
+          {/* Avatar fallback */}
           <circle cx={cx} cy={cy} r={r} fill={`url(#${gradId})`} />
 
-          {/* Inner border */}
-          <circle cx={cx} cy={cy} r={r - 1} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
-
-          {/* Shine */}
-          <ellipse cx={cx - r * 0.2} cy={cy - r * 0.25} rx={r * 0.3} ry={r * 0.12} fill="white" opacity={0.15} transform={`rotate(-15 ${cx - r * 0.2} ${cy - r * 0.25})`} />
-
-          {/* Initials */}
-          <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central" fill="white" fontSize={isTop3 ? 14 : 11} fontWeight={800} fontFamily="Inter, system-ui, sans-serif">
-            {initials}
-          </text>
+          {/* Avatar image */}
+          <image
+            href={getDiceBearUrl(entry.slug)}
+            x={cx - r}
+            y={cy - r}
+            width={r * 2}
+            height={r * 2}
+            clipPath={`url(#clip-${entry.id})`}
+            preserveAspectRatio="xMidYMid slice"
+          />
 
           {/* Rank badge */}
           <circle cx={cx + r - 2} cy={cy + r - 2} r={isTop3 ? 9 : 8} fill={isTop3 ? colors.ring : "#222"} stroke="#0A0A0A" strokeWidth={2} />
@@ -575,8 +580,8 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                     {entries.length >= 2 && (
                       <div className="flex flex-col items-center cursor-pointer" onClick={() => handleAvatarClick(entries[1])}>
                         <div className="relative mb-2">
-                          <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-extrabold text-white" style={{ background: `linear-gradient(135deg, hsl(${nameToHue(entries[1].name)}, 50%, 50%), hsl(${nameToHue(entries[1].name)}, 55%, 30%))`, boxShadow: "0 0 0 3px #C0C0C0, 0 0 0 5px #131313" }}>
-                            {getInitials(entries[1].name)}
+                          <div className="w-14 h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #C0C0C0, 0 0 0 5px #131313" }}>
+                            <StudentAvatar slug={entries[1].slug} name={entries[1].name} size={56} />
                           </div>
                         </div>
                         <p className="text-white text-[11px] font-bold truncate max-w-[80px]">{entries[1].name}</p>
@@ -592,8 +597,8 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                       <div className="text-2xl mb-1">&#x1F451;</div>
                       <div className="relative mb-2">
                         <div className="absolute inset-0 rounded-full blur-lg opacity-40 bg-[#FFD700]" />
-                        <div className="relative w-18 h-18 w-[72px] h-[72px] rounded-full flex items-center justify-center text-xl font-extrabold text-white" style={{ background: `linear-gradient(135deg, hsl(${nameToHue(entries[0].name)}, 50%, 50%), hsl(${nameToHue(entries[0].name)}, 55%, 30%))`, boxShadow: "0 0 0 3px #FFD700, 0 0 0 5px #131313, 0 0 20px rgba(255,215,0,0.3)" }}>
-                          {getInitials(entries[0].name)}
+                        <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #FFD700, 0 0 0 5px #131313, 0 0 20px rgba(255,215,0,0.3)" }}>
+                          <StudentAvatar slug={entries[0].slug} name={entries[0].name} size={72} />
                         </div>
                       </div>
                       <p className="text-white text-xs font-bold truncate max-w-[90px]">{entries[0].name}</p>
@@ -607,8 +612,8 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                     {entries.length >= 3 && (
                       <div className="flex flex-col items-center cursor-pointer" onClick={() => handleAvatarClick(entries[2])}>
                         <div className="relative mb-2">
-                          <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-extrabold text-white" style={{ background: `linear-gradient(135deg, hsl(${nameToHue(entries[2].name)}, 50%, 50%), hsl(${nameToHue(entries[2].name)}, 55%, 30%))`, boxShadow: "0 0 0 3px #CD7F32, 0 0 0 5px #131313" }}>
-                            {getInitials(entries[2].name)}
+                          <div className="w-14 h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #CD7F32, 0 0 0 5px #131313" }}>
+                            <StudentAvatar slug={entries[2].slug} name={entries[2].name} size={56} />
                           </div>
                         </div>
                         <p className="text-white text-[11px] font-bold truncate max-w-[80px]">{entries[2].name}</p>
@@ -633,12 +638,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                       <span className="text-[#555] text-sm font-bold w-6 text-center">{entry.rank}</span>
 
                       {/* Avatar */}
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-                        style={{ background: `linear-gradient(135deg, hsl(${nameToHue(entry.name)}, 45%, 45%), hsl(${nameToHue(entry.name)}, 50%, 28%))` }}
-                      >
-                        {getInitials(entry.name)}
-                      </div>
+                      <StudentAvatar slug={entry.slug} name={entry.name} size={40} className="rounded-xl" />
 
                       {/* Name */}
                       <div className="flex-1 min-w-0">
