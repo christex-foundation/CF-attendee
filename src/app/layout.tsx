@@ -16,11 +16,20 @@ export const metadata: Metadata = {
     description: "Gamified attendance tracking with leaderboards, challenges, badges & streaks",
     siteName: "Christex Attend",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Christex Attend - Gamified Attendance Tracking",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Christex Attend",
     description: "Gamified attendance tracking with leaderboards, challenges, badges & streaks",
+    images: ["/opengraph-image"],
   },
 };
 

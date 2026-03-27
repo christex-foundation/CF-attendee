@@ -65,3 +65,7 @@ export interface SideQuestNode {
   progress: StudentChallengeProgress | null;
   anchorSession: number;
 }
+
+export interface AttendanceRecordWithStudent extends AttendanceRecord {
+  studentName: string;
+}

@@ -14,6 +14,7 @@ const ThreeBackground = dynamic(
 interface Session {
   sessionNumber: number;
   status: "present" | "absent" | "locked";
+  date: string | null;
 }
 
 interface Props {

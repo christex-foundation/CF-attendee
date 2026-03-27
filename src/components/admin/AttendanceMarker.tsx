@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Student {
   id: number;
@@ -22,15 +22,18 @@ export default function AttendanceMarker({
   onSaved,
 }: AttendanceMarkerProps) {
   const [sessionNumber, setSessionNumber] = useState(1);
-  const [statuses, setStatuses] = useState<Record<number, "present" | "absent">>(
-    () => {
-      const initial: Record<number, "present" | "absent"> = {};
-      students.forEach((s) => (initial[s.id] = "present"));
-      return initial;
-    }
-  );
+  const [statuses, setStatuses] = useState<Record<number, "present" | "absent">>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Reinitialize statuses whenever the modal opens or students change
+  useEffect(() => {
+    if (open && students.length > 0) {
+      const initial: Record<number, "present" | "absent"> = {};
+      students.forEach((s) => (initial[s.id] = "present"));
+      setStatuses(initial);
+    }
+  }, [open, students]);
 
   if (!open) return null;
 

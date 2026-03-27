@@ -8,16 +8,19 @@ import ChallengesList from "@/components/admin/ChallengesList";
 import TaskSubmissionsModal from "@/components/admin/TaskSubmissionsModal";
 import AddPointsModal from "@/components/admin/AddPointsModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
+import AttendanceTable from "@/components/admin/AttendanceTable";
 import StudentAvatar from "@/components/ui/StudentAvatar";
-import type { Student, Challenge } from "@/types";
+import type { Student, Challenge, AttendanceRecordWithStudent } from "@/types";
 
-type Tab = "students" | "challenges";
+type Tab = "students" | "challenges" | "attendance";
 
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecordWithStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [challengesLoading, setChallengesLoading] = useState(true);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("students");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
@@ -47,10 +50,20 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchAttendance = useCallback(async () => {
+    try {
+      const res = await fetch("/api/attendance");
+      if (res.ok) setAttendanceRecords(await res.json());
+    } finally {
+      setAttendanceLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStudents();
     fetchChallenges();
-  }, [fetchStudents, fetchChallenges]);
+    fetchAttendance();
+  }, [fetchStudents, fetchChallenges, fetchAttendance]);
 
   function copyLink(slug: string) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
@@ -74,13 +87,15 @@ export default function DashboardPage() {
     }
   }
 
-  const loading = tab === "students" ? studentsLoading : challengesLoading;
+  const totalSessions = new Set(attendanceRecords.map((r) => r.sessionNumber)).size;
+  const loading = tab === "students" ? studentsLoading : tab === "challenges" ? challengesLoading : attendanceLoading;
 
   return (
     <div>
       {/* ─── Summary cards ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
         <StatCard label="Students" value={students.length} color="bg-[#F5E6D3]" />
+        <StatCard label="Sessions" value={totalSessions} color="bg-[#E3F2FD]" />
         <StatCard label="Challenges" value={challenges.length} color="bg-[#E8F5E9]" />
         <StatCard label="Active" value={challenges.filter(c => c.status === "active").length} color="bg-[#FFF8E1]" />
         <StatCard label="Archived" value={challenges.filter(c => c.status === "archived").length} color="bg-[#F3E5F5]" />
@@ -114,6 +129,16 @@ export default function DashboardPage() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setTab("attendance")}
+            className={`px-5 py-2 text-sm font-semibold rounded-lg transition cursor-pointer ${
+              tab === "attendance"
+                ? "bg-white text-[#1A1A1A] shadow-sm"
+                : "text-[#8B7355] hover:text-[#1A1A1A]"
+            }`}
+          >
+            Attendance
+          </button>
         </div>
 
         {/* Action buttons */}
@@ -134,12 +159,20 @@ export default function DashboardPage() {
                 + Add Student
               </button>
             </>
-          ) : (
+          ) : tab === "challenges" ? (
             <button
               onClick={() => setShowCreateChallenge(true)}
               className="px-4 py-2.5 bg-[#1A1A1A] text-white text-sm font-semibold rounded-xl hover:bg-[#333] transition cursor-pointer"
             >
               + Create Challenge
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAttendance(true)}
+              disabled={students.length === 0}
+              className="px-4 py-2.5 bg-[#C4A265] text-white text-sm font-semibold rounded-xl hover:bg-[#B08F50] transition disabled:opacity-50 cursor-pointer"
+            >
+              Mark Attendance
             </button>
           )}
         </div>
@@ -278,6 +311,11 @@ export default function DashboardPage() {
         </>
       )}
 
+      {/* ─── Attendance Tab ─── */}
+      {tab === "attendance" && (
+        <AttendanceTable records={attendanceRecords} loading={attendanceLoading} />
+      )}
+
       {/* Modals */}
       <AddStudentModal
         open={showAddModal}
@@ -288,7 +326,7 @@ export default function DashboardPage() {
         students={students}
         open={showAttendance}
         onClose={() => setShowAttendance(false)}
-        onSaved={fetchStudents}
+        onSaved={() => { fetchStudents(); fetchAttendance(); }}
       />
       <CreateChallengeModal
         open={showCreateChallenge}

@@ -6,6 +6,7 @@ interface MapNodeProps {
   cx: number;
   cy: number;
   isLatest: boolean;
+  onClick?: () => void;
 }
 
 export default function MapNode({
@@ -14,6 +15,7 @@ export default function MapNode({
   cx,
   cy,
   isLatest,
+  onClick,
 }: MapNodeProps) {
   const radius = 30;
 
@@ -50,7 +52,11 @@ export default function MapNode({
   const glowId = `node-glow-${sessionNumber}`;
 
   return (
-    <g className={isLatest && status !== "locked" ? "animate-bounce-node" : ""}>
+    <g
+      className={isLatest && status !== "locked" ? "animate-bounce-node" : ""}
+      onClick={onClick}
+      style={{ cursor: onClick ? "pointer" : "default" }}
+    >
       <defs>
         {/* Radial gradient for glossy candy button */}
         <radialGradient id={gradId} cx="35%" cy="30%" r="65%">
@@ -68,18 +74,52 @@ export default function MapNode({
         </filter>
       </defs>
 
-      {/* Outer glow ring for active/latest */}
+      {/* Invisible hit area for better tap targets (44pt minimum) */}
+      <circle cx={cx} cy={cy} r={44} fill="transparent" />
+
+      {/* "You Are Here" marker for latest node */}
       {isLatest && status !== "locked" && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={radius + 12}
-          fill="none"
-          stroke="#FFD700"
-          strokeWidth={3}
-          opacity={0.6}
-          className="animate-pulse-glow"
-        />
+        <g>
+          {/* Outer glow ring */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius + 16}
+            fill="none"
+            stroke="#FFD700"
+            strokeWidth={3}
+            opacity={0.6}
+            className="animate-pulse-glow"
+          />
+          {/* Flag pole */}
+          <line
+            x1={cx}
+            y1={cy - radius - 20}
+            x2={cx}
+            y2={cy - radius - 52}
+            stroke="#FFD700"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
+          {/* Flag */}
+          <polygon
+            points={`${cx},${cy - radius - 52} ${cx + 20},${cy - radius - 44} ${cx},${cy - radius - 36}`}
+            fill="#FFD700"
+            opacity={0.9}
+          />
+          {/* "HERE" label */}
+          <text
+            x={cx}
+            y={cy - radius - 58}
+            textAnchor="middle"
+            fill="#FFD700"
+            fontSize={9}
+            fontWeight={800}
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            YOU ARE HERE
+          </text>
+        </g>
       )}
 
       {/* Shadow underneath */}
@@ -146,35 +186,33 @@ export default function MapNode({
           </text>
 
           {/* Stars above the node (1-3 stars for completed) */}
-          <g>
-            {/* Center star */}
-            <polygon
-              points={starPoints(cx, cy - radius - 16, 7)}
-              fill="#FFD700"
-              stroke="#CC8800"
-              strokeWidth={1}
-            />
-            {/* Left star */}
-            <polygon
-              points={starPoints(cx - 14, cy - radius - 12, 5.5)}
-              fill="#FFD700"
-              stroke="#CC8800"
-              strokeWidth={0.8}
-            />
-            {/* Right star */}
-            <polygon
-              points={starPoints(cx + 14, cy - radius - 12, 5.5)}
-              fill="#FFD700"
-              stroke="#CC8800"
-              strokeWidth={0.8}
-            />
-          </g>
+          {!isLatest && (
+            <g>
+              <polygon
+                points={starPoints(cx, cy - radius - 16, 7)}
+                fill="#FFD700"
+                stroke="#CC8800"
+                strokeWidth={1}
+              />
+              <polygon
+                points={starPoints(cx - 14, cy - radius - 12, 5.5)}
+                fill="#FFD700"
+                stroke="#CC8800"
+                strokeWidth={0.8}
+              />
+              <polygon
+                points={starPoints(cx + 14, cy - radius - 12, 5.5)}
+                fill="#FFD700"
+                stroke="#CC8800"
+                strokeWidth={0.8}
+              />
+            </g>
+          )}
         </>
       )}
 
       {status === "absent" && (
         <>
-          {/* Session number */}
           <text
             x={cx}
             y={cy - 2}
@@ -188,7 +226,6 @@ export default function MapNode({
           >
             {sessionNumber}
           </text>
-          {/* Small X below number */}
           <g opacity={0.9}>
             <line
               x1={cx - 5}
@@ -214,7 +251,6 @@ export default function MapNode({
 
       {status === "locked" && (
         <>
-          {/* Session number (dimmed) */}
           <text
             x={cx}
             y={cy - 4}
@@ -227,7 +263,6 @@ export default function MapNode({
           >
             {sessionNumber}
           </text>
-          {/* Lock icon */}
           <g opacity={0.6}>
             <rect
               x={cx - 6}

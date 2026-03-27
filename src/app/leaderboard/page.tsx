@@ -11,8 +11,16 @@ import LeaderboardClient from "./client";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Leaderboard - Christex Attendance",
+  title: "Leaderboard - Christex Attend",
   description: "See who's leading the attendance race!",
+  openGraph: {
+    title: "Leaderboard - Christex Attend",
+    description: "See who's leading the attendance race!",
+  },
+  twitter: {
+    title: "Leaderboard - Christex Attend",
+    description: "See who's leading the attendance race!",
+  },
 };
 
 function getStartOfWeek(): Date {

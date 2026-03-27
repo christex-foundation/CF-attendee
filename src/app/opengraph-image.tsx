@@ -58,7 +58,6 @@ export default async function Image() {
             borderRadius: 24,
             background: "linear-gradient(135deg, #C4A265 0%, #8B7355 100%)",
             marginBottom: 32,
-            boxShadow: "0 20px 60px rgba(196,162,101,0.3)",
           }}
         >
           <div
@@ -85,7 +84,7 @@ export default async function Image() {
               fontSize: 64,
               fontWeight: 800,
               color: "#C4A265",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.01em",
             }}
           >
             Christex
@@ -95,7 +94,7 @@ export default async function Image() {
               fontSize: 64,
               fontWeight: 800,
               color: "#FFFFFF",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.01em",
             }}
           >
             Attend

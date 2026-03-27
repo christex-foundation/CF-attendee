@@ -78,6 +78,9 @@ export default function SideQuestNode({
         </radialGradient>
       </defs>
 
+      {/* Invisible hit area for better tap targets */}
+      <circle cx={cx} cy={cy} r={36} fill="transparent" />
+
       {/* Shadow */}
       <ellipse
         cx={cx}

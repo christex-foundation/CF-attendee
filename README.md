@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Christex Attend
+
+A gamified attendance tracking system built for the Christex Engineering Cohort. Transforms attendance into an engaging experience with progress maps, leaderboards, challenges, badges, and streaks.
+
+## Features
+
+**For Students (Public Access)**
+- Personal progress map with a visual winding path showing attendance history
+- Three challenge types: quizzes, tasks, and streak challenges
+- Points, badges, and streak tracking
+- Live leaderboard with rankings and weekly gains
+- Auto-generated avatars via DiceBear
+
+**For Admins (Authenticated)**
+- Student management (add, edit, delete)
+- Bulk attendance marking per session
+- Challenge creation and management
+- Task submission review and grading
+- Manual bonus points with audit logging
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| UI | React 19, Tailwind CSS 4 |
+| Database | PostgreSQL (Neon Serverless) |
+| ORM | Drizzle ORM |
+| Auth | JWT (jose) + bcryptjs |
+| 3D Graphics | Three.js + React Three Fiber |
+| Deployment | Vercel |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- A [Neon](https://neon.tech) PostgreSQL database
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/your-username/christex-attend.git
+cd christex-attend
+npm install
+```
+
+### 2. Configure environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+JWT_SECRET=your-secret-key
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | Neon PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Secret key for signing JWT tokens |
+| `NEXT_PUBLIC_BASE_URL` | No | Base URL for OpenGraph images |
+
+### 3. Set up the database
+
+```bash
+npm run db:generate   # Generate migration files
+npm run db:push       # Push schema to database
+```
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run db:generate` | Generate Drizzle migration files |
+| `npm run db:push` | Push schema changes to database |
+| `npm run db:studio` | Open Drizzle Studio (database GUI) |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/
+    admin/
+      dashboard/            # Admin dashboard (protected)
+      login/                # Admin login page
+    api/
+      admin/                # Auth endpoints (login, logout)
+      attendance/           # Attendance recording
+      challenges/           # Challenge CRUD + submissions
+      leaderboard/          # Leaderboard data
+      student/              # Student challenges, stats, quiz/task
+      students/             # Student CRUD + points
+    leaderboard/            # Public leaderboard page
+    student/[slug]/         # Student progress page
+    page.tsx                # Landing page
+  components/
+    admin/                  # Dashboard modals and forms
+    leaderboard/            # Leaderboard 3D background
+    student/                # Progress map, nodes, side quests
+    ui/                     # Shared components (Logo, Avatar)
+  lib/
+    db/
+      schema.ts             # Database schema (Drizzle ORM)
+      index.ts              # Database connection
+    auth.ts                 # JWT and password utilities
+    avatar.ts               # DiceBear avatar generation
+    utils.ts                # Slug generation
+  middleware.ts             # Route protection
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How It Works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Points System
+- **10 points** per attended session
+- **Variable points** for completing challenges
+- **Bonus points** awarded manually by admins
 
-## Deploy on Vercel
+### Leaderboard Ranking
+1. Total score (descending)
+2. Tiebreaker: sessions attended (descending)
+3. Final tiebreaker: name (alphabetical)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Challenge Types
+- **Quiz** — Multiple-choice questions, all-or-nothing grading
+- **Task** — Free-form submission, requires admin approval
+- **Streak** — Auto-completes when a student reaches the required consecutive attendance streak
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+Deploy to Vercel with one click:
+
+1. Push the repo to GitHub
+2. Import the project on [Vercel](https://vercel.com)
+3. Add the environment variables (`DATABASE_URL`, `JWT_SECRET`, `NEXT_PUBLIC_BASE_URL`)
+4. Deploy
+
+## License
+
+This project is private and built for the Christex Engineering Cohort.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import MapNode from "./MapNode";
 import SideQuestNodeComp from "./SideQuestNode";
@@ -12,6 +12,7 @@ import type { SideQuestNode } from "@/types";
 interface Session {
   sessionNumber: number;
   status: "present" | "absent" | "locked";
+  date: string | null;
 }
 
 interface ProgressMapProps {
@@ -86,6 +87,25 @@ function CandyLandscape({ width, height }: { width: number; height: number }) {
   );
 }
 
+/* ─── Hook: measure container width ─── */
+function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
+  const [width, setWidth] = useState(520); // SSR-safe default
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const update = () => setWidth(el.offsetWidth);
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+
+  return width;
+}
+
 export default function ProgressMap({
   sessions,
   studentName,
@@ -95,12 +115,19 @@ export default function ProgressMap({
   currentStreak,
 }: ProgressMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgContainerRef = useRef<HTMLDivElement>(null);
   const [activeQuest, setActiveQuest] = useState<SideQuestNode | null>(null);
+  const [activeSession, setActiveSession] = useState<(Session & { cx: number; cy: number }) | null>(null);
+
+  const containerWidth = useContainerWidth(svgContainerRef);
+  const isNarrow = containerWidth < 400;
 
   const mapWidth = 520;
-  const nodeSpacingY = 140;
+  const nodeSpacingY = isNarrow
+    ? sessions.length > 20 ? 90 : 120
+    : sessions.length > 20 ? 100 : 140;
   const centerX = mapWidth / 2;
-  const amplitude = 160;
+  const amplitude = isNarrow ? 120 : 160;
   const topPadding = 120;
   const bottomPadding = 100;
 
@@ -121,14 +148,26 @@ export default function ProgressMap({
     .filter((s) => s.status !== "locked")
     .reduce((max, s) => Math.max(max, s.sessionNumber), 0);
 
+  // Scroll to center the latest node in view
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+    const container = containerRef.current;
+    if (!container) return;
+
+    const latestNode = nodes.find((n) => n.sessionNumber === latestSessionNumber);
+    if (!latestNode) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      return;
     }
-  }, []);
+
+    // Calculate SVG scale factor
+    const svgEl = container.querySelector("svg");
+    if (!svgEl) return;
+    const scale = svgEl.clientHeight / totalHeight;
+    const nodePixelY = latestNode.cy * scale;
+    const scrollTarget = nodePixelY - container.clientHeight / 2;
+
+    container.scrollTo({ top: Math.max(0, scrollTarget), behavior: "smooth" });
+  }, [latestSessionNumber, nodes, totalHeight]);
 
   function buildRoadPath(
     x1: number, y1: number,
@@ -150,7 +189,6 @@ export default function ProgressMap({
   }, [sideQuests]);
 
   const decorations = useMemo(() => {
-    // Deterministic pseudo-random based on index to avoid hydration mismatch
     function seededRandom(seed: number): number {
       const x = Math.sin(seed * 9301 + 49297) * 49297;
       const r = x - Math.floor(x);
@@ -159,6 +197,9 @@ export default function ProgressMap({
 
     const decos: React.ReactNode[] = [];
     nodes.forEach((node, i) => {
+      // On narrow screens, skip every other decoration
+      if (isNarrow && i % 2 !== 0) return;
+
       const side = i % 2 === 0 ? 1 : -1;
       const offsetX = side * (70 + seededRandom(i) * 40);
 
@@ -180,16 +221,26 @@ export default function ProgressMap({
       }
     });
     return decos;
-  }, [nodes]);
+  }, [nodes, isNarrow]);
+
+  // Progress stats
+  const completedCount = sessions.filter((s) => s.status !== "locked").length;
+  const presentCount = sessions.filter((s) => s.status === "present").length;
+  const progressPercent = sessions.length > 0 ? (completedCount / sessions.length) * 100 : 0;
+
+  // Dismiss session popover on tap outside
+  const handleBackdropClick = useCallback(() => {
+    setActiveSession(null);
+  }, []);
 
   return (
     <div className="relative z-10 flex flex-col items-center min-h-screen">
       {/* Header */}
-      <div className="pt-6 pb-2 text-center relative z-20">
-        <div className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl">
-          <StudentAvatar slug={studentSlug} name={studentName} size={48} />
+      <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px]">
+        <div className="inline-flex items-center gap-2 sm:gap-3 px-5 sm:px-8 py-3 sm:py-4 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl">
+          <StudentAvatar slug={studentSlug} name={studentName} size={isNarrow ? 36 : 48} />
           <div>
-            <h1 className="text-2xl font-extrabold text-white tracking-wide">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-wide">
               {studentName}
             </h1>
             <p className="text-[#C4A265] text-xs font-semibold tracking-widest uppercase mt-1">
@@ -209,6 +260,23 @@ export default function ProgressMap({
         >
           &#x1F3C6; Leaderboard
         </Link>
+
+        {/* Progress Bar */}
+        <div className="mt-3 w-full max-w-xs mx-auto">
+          <div className="flex justify-between text-[10px] text-[#999] font-semibold mb-1">
+            <span>{presentCount}/{sessions.length} sessions attended</span>
+            <span>{Math.round(progressPercent)}%</span>
+          </div>
+          <div className="h-2 bg-[#1A1A1A] rounded-full border border-[#333] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${progressPercent}%`,
+                background: "linear-gradient(90deg, #C4A265, #FFD700, #FF8C00)",
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Scrollable Map */}
@@ -217,104 +285,158 @@ export default function ProgressMap({
         className="flex-1 overflow-y-auto w-full flex justify-center candy-scroll"
         style={{ maxHeight: "calc(100vh - 130px)" }}
       >
-        <svg
-          width={mapWidth}
-          height={totalHeight}
-          viewBox={`0 0 ${mapWidth} ${totalHeight}`}
-          className="block"
-        >
-          <CandyLandscape width={mapWidth} height={totalHeight} />
+        <div ref={svgContainerRef} className="w-full max-w-[520px] px-2">
+          <svg
+            viewBox={`0 0 ${mapWidth} ${totalHeight}`}
+            preserveAspectRatio="xMidYMin meet"
+            className="w-full block"
+          >
+            <CandyLandscape width={mapWidth} height={totalHeight} />
 
-          {/* ─── The Road ─── */}
-          {nodes.map((node, i) => {
-            if (i === 0) return null;
-            const prev = nodes[i - 1];
-            const d = buildRoadPath(prev.cx, prev.cy, node.cx, node.cy);
-
-            return (
-              <g key={`road-${node.sessionNumber}`}>
-                <path d={d} fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth={36} strokeLinecap="round" />
-                <path d={d} fill="none" stroke="#3A3A3A" strokeWidth={28} strokeLinecap="round" />
-                <path d={d} fill="none" stroke="#C4A265" strokeWidth={30} strokeLinecap="round" opacity={0.12} />
-                <path d={d} fill="none" stroke="#4A4A4A" strokeWidth={28} strokeLinecap="round" opacity={0.3} />
-                <path
-                  d={d}
-                  fill="none"
-                  stroke={node.status === "locked" ? "#555" : "#C4A265"}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeDasharray="16 10"
-                  opacity={node.status === "locked" ? 0.3 : 0.5}
-                  className={node.status !== "locked" ? "animate-road-dash" : ""}
-                />
-              </g>
-            );
-          })}
-
-          {/* ─── Side Quest Branches ─── */}
-          {nodes.map((node) => {
-            const quests = questsBySession.get(node.sessionNumber);
-            if (!quests) return null;
-
-            return quests.map((sq, qi) => {
-              // Position side quest on opposite side of the next node
-              const side = node.cx > centerX ? -1 : 1;
-              const sqX = node.cx + side * (110 + qi * 50);
-              const sqY = node.cy - 30;
-
-              const branchD = buildRoadPath(node.cx, node.cy, sqX, sqY);
+            {/* ─── The Road ─── */}
+            {nodes.map((node, i) => {
+              if (i === 0) return null;
+              const prev = nodes[i - 1];
+              const d = buildRoadPath(prev.cx, prev.cy, node.cx, node.cy);
 
               return (
-                <g key={`sq-branch-${sq.challenge.id}`}>
-                  {/* Branch road - purple/gold style */}
-                  <path d={branchD} fill="none" stroke="#6D28D9" strokeWidth={12} strokeLinecap="round" opacity={0.3} />
-                  <path d={branchD} fill="none" stroke="#EDE9FE" strokeWidth={8} strokeLinecap="round" opacity={0.7} />
-                  <path d={branchD} fill="none" stroke="#A78BFA" strokeWidth={3} strokeLinecap="round" strokeDasharray="4 8" opacity={0.6} />
-
-                  <SideQuestNodeComp
-                    cx={sqX}
-                    cy={sqY}
-                    type={sq.challenge.type}
-                    completed={sq.progress?.completed ?? false}
-                    badgeEmoji={sq.challenge.badgeEmoji}
-                    pointsReward={sq.challenge.pointsReward}
-                    title={sq.challenge.title}
-                    onClick={() => setActiveQuest(sq)}
+                <g key={`road-${node.sessionNumber}`}>
+                  <path d={d} fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth={36} strokeLinecap="round" />
+                  <path d={d} fill="none" stroke="#3A3A3A" strokeWidth={28} strokeLinecap="round" />
+                  <path d={d} fill="none" stroke="#C4A265" strokeWidth={30} strokeLinecap="round" opacity={0.12} />
+                  <path d={d} fill="none" stroke="#4A4A4A" strokeWidth={28} strokeLinecap="round" opacity={0.3} />
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke={node.status === "locked" ? "#555" : "#C4A265"}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeDasharray="16 10"
+                    opacity={node.status === "locked" ? 0.3 : 0.5}
+                    className={node.status !== "locked" ? "animate-road-dash" : ""}
                   />
                 </g>
               );
-            });
-          })}
+            })}
 
-          {/* ─── Decorations ─── */}
-          {decorations}
+            {/* ─── Side Quest Branches ─── */}
+            {nodes.map((node) => {
+              const quests = questsBySession.get(node.sessionNumber);
+              if (!quests) return null;
 
-          {/* ─── Nodes ─── */}
-          {nodes.map((node) => (
-            <MapNode
-              key={node.sessionNumber}
-              sessionNumber={node.sessionNumber}
-              status={node.status}
-              cx={node.cx}
-              cy={node.cy}
-              isLatest={node.sessionNumber === latestSessionNumber}
-            />
-          ))}
+              return quests.map((sq, qi) => {
+                const side = node.cx > centerX ? -1 : 1;
+                const rawSqX = node.cx + side * (110 + qi * 50);
+                const sqX = Math.max(40, Math.min(mapWidth - 40, rawSqX));
+                const sqY = node.cy - 30;
 
-          {/* Extra sparkle stars */}
-          {nodes
-            .filter((n) => n.status === "present")
-            .map((n, i) => (
-              <Star4
-                key={`extra-star-${i}`}
-                x={n.cx + (i % 2 === 0 ? 35 : -35)}
-                y={n.cy + 5}
-                size={4}
-                color="#FFD700"
+                const branchD = buildRoadPath(node.cx, node.cy, sqX, sqY);
+
+                return (
+                  <g key={`sq-branch-${sq.challenge.id}`}>
+                    <path d={branchD} fill="none" stroke="#6D28D9" strokeWidth={12} strokeLinecap="round" opacity={0.3} />
+                    <path d={branchD} fill="none" stroke="#EDE9FE" strokeWidth={8} strokeLinecap="round" opacity={0.7} />
+                    <path d={branchD} fill="none" stroke="#A78BFA" strokeWidth={3} strokeLinecap="round" strokeDasharray="4 8" opacity={0.6} />
+
+                    <SideQuestNodeComp
+                      cx={sqX}
+                      cy={sqY}
+                      type={sq.challenge.type}
+                      completed={sq.progress?.completed ?? false}
+                      badgeEmoji={sq.challenge.badgeEmoji}
+                      pointsReward={sq.challenge.pointsReward}
+                      title={sq.challenge.title}
+                      onClick={() => setActiveQuest(sq)}
+                    />
+                  </g>
+                );
+              });
+            })}
+
+            {/* ─── Decorations ─── */}
+            {decorations}
+
+            {/* ─── Nodes ─── */}
+            {nodes.map((node) => (
+              <MapNode
+                key={node.sessionNumber}
+                sessionNumber={node.sessionNumber}
+                status={node.status}
+                cx={node.cx}
+                cy={node.cy}
+                isLatest={node.sessionNumber === latestSessionNumber}
+                onClick={() => setActiveSession(node)}
               />
             ))}
-        </svg>
+
+            {/* Extra sparkle stars */}
+            {nodes
+              .filter((n) => n.status === "present")
+              .map((n, i) => (
+                <Star4
+                  key={`extra-star-${i}`}
+                  x={n.cx + (i % 2 === 0 ? 35 : -35)}
+                  y={n.cy + 5}
+                  size={4}
+                  color="#FFD700"
+                />
+              ))}
+          </svg>
+        </div>
       </div>
+
+      {/* Session Detail Popover */}
+      {activeSession && (
+        <div className="fixed inset-0 z-50" onClick={handleBackdropClick}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#1A1A1A] border border-[#333] rounded-2xl px-6 py-5 shadow-2xl min-w-[220px] text-center">
+              <div className="text-xs font-semibold text-[#999] uppercase tracking-wider mb-2">
+                Session {activeSession.sessionNumber}
+              </div>
+              <div className="mb-3">
+                {activeSession.status === "present" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF8C00]/20 text-[#FFD700] text-sm font-bold">
+                    &#x2713; Present
+                  </span>
+                )}
+                {activeSession.status === "absent" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E0405A]/20 text-[#FF6B9D] text-sm font-bold">
+                    &#x2717; Absent
+                  </span>
+                )}
+                {activeSession.status === "locked" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6B5B7B]/20 text-[#8B7AA0] text-sm font-bold">
+                    &#x1F512; Upcoming
+                  </span>
+                )}
+              </div>
+              {activeSession.date && (
+                <div className="text-[#ccc] text-sm mb-2">
+                  {new Date(activeSession.date).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+              )}
+              <div className="text-[#C4A265] text-lg font-bold">
+                {activeSession.status === "present" ? "+10 pts" : "0 pts"}
+              </div>
+              <button
+                onClick={() => setActiveSession(null)}
+                className="mt-3 text-xs text-[#666] hover:text-white transition"
+              >
+                Tap to dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Side Quest Panel */}
       {activeQuest && (

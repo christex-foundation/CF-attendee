@@ -397,66 +397,53 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
   }, [milestoneCount, totalHeight, centerX, amplitude, bottomPadding, nodeSpacingY]);
 
   const studentPositions = useMemo(() => {
-    function getPositionForScore(score: number): { cx: number; cy: number } {
-      if (milestones.length < 2) return milestones[0] || { cx: centerX, cy: totalHeight - bottomPadding };
-      const exactIndex = Math.min(score / pointsStep, milestones.length - 1);
-      const lowerIdx = Math.max(0, Math.min(Math.floor(exactIndex), milestones.length - 2));
+    // Instead of clustering at exact score positions, distribute students
+    // evenly along the road based on their rank order. This prevents
+    // overlapping when many students have similar scores.
+    const sorted = [...entries].sort((a, b) => b.rank - a.rank); // worst rank first (bottom), best rank last (top)
+    const count = sorted.length;
+
+    if (count === 0 || milestones.length < 2) {
+      return sorted.map((entry) => ({
+        ...entry,
+        displayCx: centerX,
+        displayCy: totalHeight - bottomPadding,
+        pathCx: centerX,
+        pathCy: totalHeight - bottomPadding,
+      }));
+    }
+
+    // Spread students evenly across the first N milestones proportional to their rank
+    // Rank 1 = furthest along the road, last rank = near start
+    const maxMilestoneIdx = milestones.length - 1;
+
+    return sorted.map((entry, i) => {
+      // Map rank-ordered index to a position along the milestones
+      // i=0 is worst rank (near start), i=count-1 is rank 1 (near top)
+      const t = count === 1 ? 0.5 : i / (count - 1);
+      // Use up to 80% of the road so students don't crowd the very top/bottom
+      const milestoneIdx = t * maxMilestoneIdx * 0.8;
+      const lowerIdx = Math.min(Math.floor(milestoneIdx), maxMilestoneIdx - 1);
       const upperIdx = lowerIdx + 1;
-      const fraction = exactIndex - lowerIdx;
+      const fraction = milestoneIdx - lowerIdx;
       const lower = milestones[lowerIdx];
       const upper = milestones[upperIdx];
+
+      const pathCx = lower.cx + (upper.cx - lower.cx) * fraction;
+      const pathCy = lower.cy + (upper.cy - lower.cy) * fraction;
+
+      // Offset slightly left/right of the road based on even/odd index
+      const side = i % 2 === 0 ? -1 : 1;
+      const offsetX = entry.rank <= 3 ? 0 : side * 30; // top 3 stay on the road
+
       return {
-        cx: lower.cx + (upper.cx - lower.cx) * fraction,
-        cy: lower.cy + (upper.cy - lower.cy) * fraction,
+        ...entry,
+        displayCx: Math.max(50, Math.min(mapWidth - 50, pathCx + offsetX)),
+        displayCy: pathCy,
+        pathCx,
+        pathCy,
       };
-    }
-
-    const raw = entries.map((entry) => {
-      const score = Number(entry.score) || 0;
-      const pos = getPositionForScore(score);
-      const safeCx = isNaN(pos.cx) ? centerX : pos.cx;
-      const safeCy = isNaN(pos.cy) ? totalHeight - bottomPadding : pos.cy;
-      return { ...entry, displayCx: safeCx, displayCy: safeCy, pathCx: safeCx, pathCy: safeCy };
     });
-
-    raw.sort((a, b) => a.score - b.score);
-
-    const groups: (typeof raw)[] = [];
-    let currentGroup: typeof raw = [];
-    for (let i = 0; i < raw.length; i++) {
-      if (currentGroup.length === 0) {
-        currentGroup.push(raw[i]);
-      } else {
-        if (Math.abs(raw[i].pathCy - currentGroup[0].pathCy) < 35) {
-          currentGroup.push(raw[i]);
-        } else {
-          groups.push(currentGroup);
-          currentGroup = [raw[i]];
-        }
-      }
-    }
-    if (currentGroup.length > 0) groups.push(currentGroup);
-
-    const result: typeof raw = [];
-    for (const group of groups) {
-      if (group.length === 1) {
-        result.push(group[0]);
-      } else {
-        group.sort((a, b) => a.rank - b.rank);
-        const anchorCx = group[0].pathCx;
-        const anchorCy = group[0].pathCy;
-        group.forEach((student, idx) => {
-          if (idx > 0) {
-            const side = idx % 2 === 1 ? 1 : -1;
-            const tier = Math.ceil(idx / 2);
-            student.displayCx = anchorCx + side * (45 * tier);
-            student.displayCy = anchorCy + (idx * 22);
-          }
-          result.push(student);
-        });
-      }
-    }
-    return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, milestones]);
 
@@ -681,7 +668,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                 <p className="text-[#555] text-lg font-medium">No students yet</p>
               </div>
             ) : (
-              <svg width={mapWidth} height={totalHeight} viewBox={`0 0 ${mapWidth} ${totalHeight}`} className="block">
+              <svg viewBox={`0 0 ${mapWidth} ${totalHeight}`} preserveAspectRatio="xMidYMin meet" className="block w-full max-w-[580px]">
                 <Particles width={mapWidth} height={totalHeight} />
 
                 {milestones.map((ms, i) => {

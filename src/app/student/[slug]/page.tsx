@@ -27,7 +27,11 @@ export async function generateMetadata({ params }: Props) {
 
   return {
     title: `${student.name} - Attendance Map`,
-    description: `View ${student.name}'s attendance progress`,
+    description: `View ${student.name}'s attendance progress and achievements`,
+    openGraph: {
+      title: `${student.name} - Christex Attend`,
+      description: `View ${student.name}'s attendance progress and achievements`,
+    },
   };
 }
 
@@ -56,11 +60,13 @@ export default async function StudentPage({ params }: Props) {
 
   const totalSessions = Math.max(maxResult?.maxSession ?? 0, records.length, 1);
 
-  const recordMap = new Map(records.map((r) => [r.sessionNumber, r.status]));
+  const recordMap = new Map(records.map((r) => [r.sessionNumber, r]));
   const sessions = Array.from({ length: totalSessions }, (_, i) => {
     const sessionNumber = i + 1;
-    const status = recordMap.get(sessionNumber) ?? "locked";
-    return { sessionNumber, status: status as "present" | "absent" | "locked" };
+    const record = recordMap.get(sessionNumber);
+    const status = (record?.status ?? "locked") as "present" | "absent" | "locked";
+    const date = record?.date ? record.date.toISOString() : null;
+    return { sessionNumber, status, date };
   });
 
   // Fetch active challenges
