@@ -1,25 +1,15 @@
 "use client";
 
 import { useState } from "react";
-
-interface Challenge {
-  id: number;
-  title: string;
-  description: string;
-  type: "quiz" | "task" | "streak";
-  status: "draft" | "active" | "archived";
-  pointsReward: number;
-  badgeEmoji: string | null;
-  badgeName: string | null;
-  anchorSession: number;
-  streakRequired: number | null;
-}
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import type { Challenge } from "@/types";
 
 interface ChallengesListProps {
   challenges: Challenge[];
   onRefresh: () => void;
   onViewSubmissions: (challengeId: number, challengeType: "quiz" | "task" | "streak") => void;
   onCreateChallenge: () => void;
+  onEditChallenge: (challenge: Challenge) => void;
 }
 
 const typeBadge = {
@@ -39,17 +29,20 @@ export default function ChallengesList({
   onRefresh,
   onViewSubmissions,
   onCreateChallenge,
+  onEditChallenge,
 }: ChallengesListProps) {
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Challenge | null>(null);
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this challenge?")) return;
-    setDeleting(id);
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget.id);
     try {
-      const res = await fetch(`/api/challenges/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/challenges/${deleteTarget.id}`, { method: "DELETE" });
       if (res.ok) onRefresh();
     } finally {
       setDeleting(null);
+      setDeleteTarget(null);
     }
   }
 
@@ -79,6 +72,7 @@ export default function ChallengesList({
   }
 
   return (
+    <>
     <div className="space-y-3">
       {challenges.map((c) => (
         <div
@@ -119,6 +113,13 @@ export default function ChallengesList({
           {/* Actions row */}
           <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#F5F0EB]">
             <button
+              onClick={() => onEditChallenge(c)}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F5F0EB] text-[#1A1A1A] hover:bg-[#E8E0D8] transition cursor-pointer"
+            >
+              Edit
+            </button>
+
+            <button
               onClick={() => toggleStatus(c)}
               className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F5F0EB] text-[#1A1A1A] hover:bg-[#E8E0D8] transition cursor-pointer"
             >
@@ -135,7 +136,7 @@ export default function ChallengesList({
             )}
 
             <button
-              onClick={() => handleDelete(c.id)}
+              onClick={() => setDeleteTarget(c)}
               disabled={deleting === c.id}
               className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer disabled:opacity-50 ml-auto"
             >
@@ -145,5 +146,14 @@ export default function ChallengesList({
         </div>
       ))}
     </div>
+    <ConfirmDialog
+      open={deleteTarget !== null}
+      title="Delete Challenge"
+      message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.title}"? This will remove all submissions and progress for this challenge.` : ""}
+      onConfirm={confirmDelete}
+      onCancel={() => setDeleteTarget(null)}
+      loading={deleting !== null}
+    />
+    </>
   );
 }

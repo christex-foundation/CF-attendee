@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     }
 
     const body = await request.json();
-    const { name } = body;
+    const { name, avatarUrl } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Student name is required" }, { status: 400 });
@@ -32,9 +32,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    const updateData: Record<string, unknown> = { name: name.trim() };
+    if (avatarUrl !== undefined) {
+      updateData.avatarUrl = avatarUrl || null;
+    }
+
     const [updated] = await db
       .update(students)
-      .set({ name: name.trim() })
+      .set(updateData)
       .where(eq(students.id, studentId))
       .returning();
 

@@ -20,6 +20,7 @@ interface Session {
 interface Props {
   studentName: string;
   studentSlug: string;
+  studentAvatarUrl?: string | null;
   sessions: Session[];
   sideQuests: SideQuestNode[];
   stats: { totalPoints: number; badgeCount: number; badges: { emoji: string; name: string }[] };
@@ -29,6 +30,7 @@ interface Props {
 export default function StudentMapClient({
   studentName,
   studentSlug,
+  studentAvatarUrl,
   sessions,
   sideQuests,
   stats,
@@ -46,6 +48,7 @@ export default function StudentMapClient({
         sessions={sessions}
         studentName={studentName}
         studentSlug={studentSlug}
+        studentAvatarUrl={studentAvatarUrl}
         sideQuests={sideQuests}
         stats={stats}
         currentStreak={currentStreak}

@@ -58,7 +58,15 @@ export default async function StudentPage({ params }: Props) {
     .select({ maxSession: max(attendance.sessionNumber) })
     .from(attendance);
 
-  const totalSessions = Math.max(maxResult?.maxSession ?? 0, records.length, 1);
+  // Fetch active challenges
+  const activeChallenges = await db
+    .select()
+    .from(challenges)
+    .where(eq(challenges.status, "active"))
+    .orderBy(asc(challenges.anchorSession));
+
+  const maxChallengeAnchor = activeChallenges.reduce((m, c) => Math.max(m, c.anchorSession), 0);
+  const totalSessions = Math.max(maxResult?.maxSession ?? 0, records.length, maxChallengeAnchor, 1);
 
   const recordMap = new Map(records.map((r) => [r.sessionNumber, r]));
   const sessions = Array.from({ length: totalSessions }, (_, i) => {
@@ -68,13 +76,6 @@ export default async function StudentPage({ params }: Props) {
     const date = record?.date ? record.date.toISOString() : null;
     return { sessionNumber, status, date };
   });
-
-  // Fetch active challenges
-  const activeChallenges = await db
-    .select()
-    .from(challenges)
-    .where(eq(challenges.status, "active"))
-    .orderBy(asc(challenges.anchorSession));
 
   // Fetch student progress
   const progress = await db
@@ -141,6 +142,7 @@ export default async function StudentPage({ params }: Props) {
     <StudentMapClient
       studentName={student.name}
       studentSlug={slug}
+      studentAvatarUrl={student.avatarUrl}
       sessions={sessions}
       sideQuests={sideQuests}
       stats={{ totalPoints, badgeCount: badges.length, badges }}

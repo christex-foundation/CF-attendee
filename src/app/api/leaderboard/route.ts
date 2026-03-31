@@ -166,6 +166,7 @@ export async function GET() {
         id: s.id,
         name: s.name,
         slug: s.slug,
+        avatarUrl: s.avatarUrl,
         sessionsPresent: att.present,
         totalSessions: att.total,
         challengePoints: pts.points,

@@ -30,7 +30,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionNumber, records } = body;
+    const { sessionNumber, date, records } = body;
 
     if (typeof sessionNumber !== "number" || sessionNumber < 1 || !Array.isArray(records) || records.length === 0) {
       return NextResponse.json(
@@ -39,11 +39,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sessionDate = date ? new Date(date) : new Date();
+
     const values = records.map(
       (r: { studentId: number; status: "present" | "absent" }) => ({
         studentId: r.studentId,
         sessionNumber: sessionNumber as number,
         status: r.status,
+        date: sessionDate,
       })
     );
 
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
         target: [attendance.studentId, attendance.sessionNumber],
         set: {
           status: sql`excluded.status`,
-          date: sql`now()`,
+          date: sql`excluded.date`,
         },
       });
 

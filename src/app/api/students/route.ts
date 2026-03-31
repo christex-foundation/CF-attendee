@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { students } from "@/lib/db/schema";
 import { generateSlug } from "@/lib/utils";
+import { getDiceBearUrl } from "@/lib/avatar";
 import { asc } from "drizzle-orm";
 
 export async function GET() {
@@ -32,10 +33,11 @@ export async function POST(request: NextRequest) {
     }
 
     const slug = generateSlug(name.trim());
+    const avatarUrl = getDiceBearUrl(slug);
 
     const [student] = await db
       .insert(students)
-      .values({ name: name.trim(), slug })
+      .values({ name: name.trim(), slug, avatarUrl })
       .returning();
 
     return NextResponse.json(student, { status: 201 });

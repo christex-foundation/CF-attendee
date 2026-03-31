@@ -26,6 +26,7 @@ interface LeaderboardEntry {
   score: number;
   weeklyGain: number;
   rank: number;
+  avatarUrl?: string | null;
 }
 
 interface Props {
@@ -568,7 +569,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                       <div className="flex flex-col items-center cursor-pointer" onClick={() => handleAvatarClick(entries[1])}>
                         <div className="relative mb-2">
                           <div className="w-14 h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #C0C0C0, 0 0 0 5px #131313" }}>
-                            <StudentAvatar slug={entries[1].slug} name={entries[1].name} size={56} />
+                            <StudentAvatar slug={entries[1].slug} name={entries[1].name} size={56} avatarUrl={entries[1].avatarUrl} />
                           </div>
                         </div>
                         <p className="text-white text-[11px] font-bold truncate max-w-[80px]">{entries[1].name}</p>
@@ -585,7 +586,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                       <div className="relative mb-2">
                         <div className="absolute inset-0 rounded-full blur-lg opacity-40 bg-[#FFD700]" />
                         <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #FFD700, 0 0 0 5px #131313, 0 0 20px rgba(255,215,0,0.3)" }}>
-                          <StudentAvatar slug={entries[0].slug} name={entries[0].name} size={72} />
+                          <StudentAvatar slug={entries[0].slug} name={entries[0].name} size={72} avatarUrl={entries[0].avatarUrl} />
                         </div>
                       </div>
                       <p className="text-white text-xs font-bold truncate max-w-[90px]">{entries[0].name}</p>
@@ -600,7 +601,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                       <div className="flex flex-col items-center cursor-pointer" onClick={() => handleAvatarClick(entries[2])}>
                         <div className="relative mb-2">
                           <div className="w-14 h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #CD7F32, 0 0 0 5px #131313" }}>
-                            <StudentAvatar slug={entries[2].slug} name={entries[2].name} size={56} />
+                            <StudentAvatar slug={entries[2].slug} name={entries[2].name} size={56} avatarUrl={entries[2].avatarUrl} />
                           </div>
                         </div>
                         <p className="text-white text-[11px] font-bold truncate max-w-[80px]">{entries[2].name}</p>
@@ -625,7 +626,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                       <span className="text-[#555] text-sm font-bold w-6 text-center">{entry.rank}</span>
 
                       {/* Avatar */}
-                      <StudentAvatar slug={entry.slug} name={entry.name} size={40} className="rounded-xl" />
+                      <StudentAvatar slug={entry.slug} name={entry.name} size={40} className="rounded-xl" avatarUrl={entry.avatarUrl} />
 
                       {/* Name */}
                       <div className="flex-1 min-w-0">

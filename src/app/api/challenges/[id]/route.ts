@@ -65,6 +65,23 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
 
+    // Update quiz questions if provided
+    if (Array.isArray(body.questions) && updated.type === "quiz") {
+      await db.delete(quizQuestions).where(eq(quizQuestions.challengeId, challengeId));
+      if (body.questions.length > 0) {
+        const questionValues = body.questions.map(
+          (q: { questionText: string; options: string[]; correctIndex: number }, i: number) => ({
+            challengeId,
+            questionText: q.questionText,
+            options: JSON.stringify(q.options),
+            correctIndex: q.correctIndex,
+            orderIndex: i,
+          })
+        );
+        await db.insert(quizQuestions).values(questionValues);
+      }
+    }
+
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json(

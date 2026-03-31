@@ -21,10 +21,66 @@ export default function AttendanceMarker({
   onClose,
   onSaved,
 }: AttendanceMarkerProps) {
-  const [sessionNumber, setSessionNumber] = useState(1);
+  const [sessionDate, setSessionDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  });
+  const [sessionNumber, setSessionNumber] = useState<number | null>(null);
   const [statuses, setStatuses] = useState<Record<number, "present" | "absent">>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [existingSessions, setExistingSessions] = useState<{ sessionNumber: number; date: string }[]>([]);
+
+  // Fetch existing session data to determine session numbers
+  useEffect(() => {
+    if (open) {
+      fetch("/api/attendance")
+        .then((res) => res.json())
+        .then((records: { sessionNumber: number; date: string }[]) => {
+          // Build unique session-date pairs
+          const sessionMap = new Map<number, string>();
+          for (const r of records) {
+            if (!sessionMap.has(r.sessionNumber)) {
+              sessionMap.set(r.sessionNumber, r.date);
+            }
+          }
+          const sessions = Array.from(sessionMap.entries())
+            .map(([sessionNumber, date]) => ({ sessionNumber, date }))
+            .sort((a, b) => a.sessionNumber - b.sessionNumber);
+          setExistingSessions(sessions);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
+
+  // Auto-derive session number from date
+  useEffect(() => {
+    if (!sessionDate) {
+      setSessionNumber(null);
+      return;
+    }
+
+    if (existingSessions.length === 0) {
+      setSessionNumber(1);
+      return;
+    }
+
+    const selectedDate = new Date(sessionDate).toDateString();
+
+    // Check if this date matches an existing session
+    const existing = existingSessions.find((s) => {
+      const sDate = new Date(s.date).toDateString();
+      return sDate === selectedDate;
+    });
+
+    if (existing) {
+      setSessionNumber(existing.sessionNumber);
+    } else {
+      // New session: assign next number
+      const maxSession = existingSessions.reduce((max, s) => Math.max(max, s.sessionNumber), 0);
+      setSessionNumber(maxSession + 1);
+    }
+  }, [sessionDate, existingSessions]);
 
   // Reinitialize statuses whenever the modal opens or students change
   useEffect(() => {
@@ -46,6 +102,12 @@ export default function AttendanceMarker({
 
   async function handleSave() {
     setError("");
+
+    if (!sessionNumber || sessionNumber < 1) {
+      setError("Invalid session number");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -57,7 +119,7 @@ export default function AttendanceMarker({
       const res = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionNumber, records }),
+        body: JSON.stringify({ sessionNumber, date: sessionDate, records }),
       });
 
       if (!res.ok) {
@@ -90,15 +152,21 @@ export default function AttendanceMarker({
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-[#8B7355] mb-1">
-            Session Number
+            Session Date
           </label>
           <input
-            type="number"
-            min={1}
-            value={sessionNumber}
-            onChange={(e) => setSessionNumber(Number(e.target.value))}
-            className="w-32 px-4 py-2 border border-[#E8E0D8] rounded-xl focus:ring-2 focus:ring-[#C4A265] focus:border-transparent outline-none transition text-[#1A1A1A] bg-[#FDFAF7]"
+            type="date"
+            value={sessionDate}
+            onChange={(e) => setSessionDate(e.target.value)}
+            className="w-full px-4 py-2 border border-[#E8E0D8] rounded-xl focus:ring-2 focus:ring-[#C4A265] focus:border-transparent outline-none transition text-[#1A1A1A] bg-[#FDFAF7]"
           />
+          {sessionNumber && (
+            <p className="text-xs text-[#8B7355] mt-1.5">
+              Session #{sessionNumber}
+              {existingSessions.some((s) => s.sessionNumber === sessionNumber) &&
+                " (updating existing session)"}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2 mb-6">

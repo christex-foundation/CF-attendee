@@ -8,6 +8,7 @@ interface StudentAvatarProps {
   name: string;
   size?: number;
   className?: string;
+  avatarUrl?: string | null;
 }
 
 export default function StudentAvatar({
@@ -15,6 +16,7 @@ export default function StudentAvatar({
   name,
   size = 32,
   className = "",
+  avatarUrl,
 }: StudentAvatarProps) {
   const [error, setError] = useState(false);
 
@@ -31,7 +33,7 @@ export default function StudentAvatar({
 
   return (
     <img
-      src={getDiceBearUrl(slug)}
+      src={avatarUrl || getDiceBearUrl(slug)}
       alt={name}
       width={size}
       height={size}

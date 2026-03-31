@@ -44,6 +44,7 @@ export const students = pgTable("students", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
+  avatarUrl: text("avatar_url"),
   manualPoints: integer("manual_points").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

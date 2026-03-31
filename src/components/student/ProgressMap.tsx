@@ -7,6 +7,7 @@ import SideQuestNodeComp from "./SideQuestNode";
 import SideQuestPanel from "./SideQuestPanel";
 import StudentStats from "./StudentStats";
 import StudentAvatar from "@/components/ui/StudentAvatar";
+import AvatarPickerModal from "./AvatarPickerModal";
 import type { SideQuestNode } from "@/types";
 
 interface Session {
@@ -19,6 +20,7 @@ interface ProgressMapProps {
   sessions: Session[];
   studentName: string;
   studentSlug: string;
+  studentAvatarUrl?: string | null;
   sideQuests: SideQuestNode[];
   stats: { totalPoints: number; badgeCount: number; badges: { emoji: string; name: string }[] };
   currentStreak: number;
@@ -110,6 +112,7 @@ export default function ProgressMap({
   sessions,
   studentName,
   studentSlug,
+  studentAvatarUrl,
   sideQuests,
   stats,
   currentStreak,
@@ -118,6 +121,8 @@ export default function ProgressMap({
   const svgContainerRef = useRef<HTMLDivElement>(null);
   const [activeQuest, setActiveQuest] = useState<SideQuestNode | null>(null);
   const [activeSession, setActiveSession] = useState<(Session & { cx: number; cy: number }) | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(studentAvatarUrl);
 
   const containerWidth = useContainerWidth(svgContainerRef);
   const isNarrow = containerWidth < 400;
@@ -238,7 +243,20 @@ export default function ProgressMap({
       {/* Header */}
       <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px]">
         <div className="inline-flex items-center gap-2 sm:gap-3 px-5 sm:px-8 py-3 sm:py-4 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl">
-          <StudentAvatar slug={studentSlug} name={studentName} size={isNarrow ? 36 : 48} />
+          <button
+            type="button"
+            onClick={() => setShowAvatarPicker(true)}
+            className="relative group cursor-pointer shrink-0"
+            title="Change avatar"
+          >
+            <StudentAvatar slug={studentSlug} name={studentName} size={isNarrow ? 36 : 48} avatarUrl={avatarUrl} />
+            <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </div>
+          </button>
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-wide">
               {studentName}
@@ -449,6 +467,15 @@ export default function ProgressMap({
           currentStreak={currentStreak}
         />
       )}
+
+      {/* Avatar Picker */}
+      <AvatarPickerModal
+        open={showAvatarPicker}
+        onClose={() => setShowAvatarPicker(false)}
+        slug={studentSlug}
+        currentAvatarUrl={avatarUrl ?? null}
+        onUpdated={(newUrl) => setAvatarUrl(newUrl)}
+      />
     </div>
   );
 }

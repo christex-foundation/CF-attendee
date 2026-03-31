@@ -8,8 +8,10 @@ import ChallengesList from "@/components/admin/ChallengesList";
 import TaskSubmissionsModal from "@/components/admin/TaskSubmissionsModal";
 import AddPointsModal from "@/components/admin/AddPointsModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
+import EditChallengeModal from "@/components/admin/EditChallengeModal";
 import AttendanceTable from "@/components/admin/AttendanceTable";
 import StudentAvatar from "@/components/ui/StudentAvatar";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import type { Student, Challenge, AttendanceRecordWithStudent } from "@/types";
 
 type Tab = "students" | "challenges" | "attendance";
@@ -29,8 +31,10 @@ export default function DashboardPage() {
   const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [pointsStudent, setPointsStudent] = useState<{ id: number; name: string } | null>(null);
-  const [editStudent, setEditStudent] = useState<{ id: number; name: string } | null>(null);
+  const [editStudent, setEditStudent] = useState<{ id: number; name: string; slug?: string; avatarUrl?: string | null } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [editChallenge, setEditChallenge] = useState<Challenge | null>(null);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -72,18 +76,21 @@ export default function DashboardPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  async function handleDeleteStudent(id: number, name: string) {
-    if (!confirm(`Are you sure you want to delete "${name}"? This will remove all their attendance, progress, and submissions.`)) {
-      return;
-    }
-    setDeletingId(id);
+  function handleDeleteStudent(id: number, name: string) {
+    setDeleteTarget({ id, name });
+  }
+
+  async function confirmDeleteStudent() {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
     try {
-      const res = await fetch(`/api/students/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/students/${deleteTarget.id}`, { method: "DELETE" });
       if (res.ok) {
         fetchStudents();
       }
     } finally {
       setDeletingId(null);
+      setDeleteTarget(null);
     }
   }
 
@@ -227,7 +234,7 @@ export default function DashboardPage() {
                       <tr key={student.id} className="border-b border-[#F5F0EB] last:border-0 hover:bg-[#FDFAF7] transition">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <StudentAvatar slug={student.slug} name={student.name} size={32} />
+                            <StudentAvatar slug={student.slug} name={student.name} size={32} avatarUrl={student.avatarUrl} />
                             <span className="font-medium text-[#1A1A1A]">{student.name}</span>
                           </div>
                         </td>
@@ -237,7 +244,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <IconBtn onClick={() => setEditStudent({ id: student.id, name: student.name })} title="Edit" icon={<EditIcon />} />
+                            <IconBtn onClick={() => setEditStudent({ id: student.id, name: student.name, slug: student.slug, avatarUrl: student.avatarUrl })} title="Edit" icon={<EditIcon />} />
                             <IconBtn onClick={() => setPointsStudent({ id: student.id, name: student.name })} title="Add Points" icon={<PointsIcon />} />
                             <IconBtn onClick={() => copyLink(student.slug)} title={copied === student.slug ? "Copied!" : "Copy Link"} icon={copied === student.slug ? <CheckIcon /> : <LinkIcon />} />
                             <IconBtn
@@ -260,14 +267,14 @@ export default function DashboardPage() {
                 {students.map((student) => (
                   <div key={student.id} className="bg-white rounded-2xl border border-[#E8E0D8] p-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <StudentAvatar slug={student.slug} name={student.name} size={40} />
+                      <StudentAvatar slug={student.slug} name={student.name} size={40} avatarUrl={student.avatarUrl} />
                       <div>
                         <span className="font-semibold text-[#1A1A1A] block">{student.name}</span>
                         <span className="text-xs text-[#8B7355] font-mono">{student.slug}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 border-t border-[#F5F0EB] pt-3">
-                      <IconBtn onClick={() => setEditStudent({ id: student.id, name: student.name })} title="Edit" icon={<EditIcon />} />
+                      <IconBtn onClick={() => setEditStudent({ id: student.id, name: student.name, slug: student.slug, avatarUrl: student.avatarUrl })} title="Edit" icon={<EditIcon />} />
                       <IconBtn onClick={() => setPointsStudent({ id: student.id, name: student.name })} title="Add Points" icon={<PointsIcon />} />
                       <IconBtn onClick={() => copyLink(student.slug)} title={copied === student.slug ? "Copied!" : "Copy Link"} icon={copied === student.slug ? <CheckIcon /> : <LinkIcon />} />
                       <div className="ml-auto">
@@ -306,6 +313,7 @@ export default function DashboardPage() {
                 setSubmissionsChallengeType(type);
               }}
               onCreateChallenge={() => setShowCreateChallenge(true)}
+              onEditChallenge={setEditChallenge}
             />
           )}
         </>
@@ -353,6 +361,20 @@ export default function DashboardPage() {
         student={editStudent}
         onClose={() => setEditStudent(null)}
         onUpdated={fetchStudents}
+      />
+      <EditChallengeModal
+        open={editChallenge !== null}
+        challenge={editChallenge}
+        onClose={() => setEditChallenge(null)}
+        onUpdated={fetchChallenges}
+      />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Student"
+        message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.name}"? This will remove all their attendance, progress, and submissions.` : ""}
+        onConfirm={confirmDeleteStudent}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deletingId !== null}
       />
     </div>
   );

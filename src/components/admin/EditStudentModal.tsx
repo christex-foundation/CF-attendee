@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import StudentAvatar from "@/components/ui/StudentAvatar";
 
 interface EditStudentModalProps {
   open: boolean;
-  student: { id: number; name: string } | null;
+  student: { id: number; name: string; slug?: string; avatarUrl?: string | null } | null;
   onClose: () => void;
   onUpdated: () => void;
 }
@@ -20,7 +21,9 @@ export default function EditStudentModal({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (student) setName(student.name);
+    if (student) {
+      setName(student.name);
+    }
   }, [student]);
 
   if (!open || !student) return null;
@@ -68,6 +71,19 @@ export default function EditStudentModal({
               {error}
             </div>
           )}
+
+          {/* Avatar display (read-only, students manage their own) */}
+          <div className="flex justify-center">
+            <StudentAvatar
+              slug={student.slug || ""}
+              name={student.name}
+              size={64}
+              avatarUrl={student.avatarUrl}
+            />
+          </div>
+          <p className="text-xs text-[#8B7355] text-center">
+            Students can change their own avatar from their profile page
+          </p>
 
           <div>
             <label className="block text-sm font-medium text-[#8B7355] mb-1">
