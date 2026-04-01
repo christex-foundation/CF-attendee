@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] relative overflow-hidden">
+    <div className="min-h-dvh flex items-center justify-center bg-[#0A0A0A] relative overflow-hidden">
       {/* Ambient glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-[#C4A265] opacity-[0.04] blur-[120px]" />
 

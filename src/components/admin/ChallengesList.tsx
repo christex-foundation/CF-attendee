@@ -73,7 +73,7 @@ export default function ChallengesList({
 
   return (
     <>
-    <div className="space-y-3">
+    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
       {challenges.map((c) => (
         <div
           key={c.id}

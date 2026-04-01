@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface AddPointsModalProps {
   open: boolean;
@@ -19,6 +19,16 @@ export default function AddPointsModal({
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleClose = useCallback(() => onClose(), [onClose]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") handleClose();
+    }
+    if (open) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, handleClose]);
 
   if (!open || !student) return null;
 
@@ -58,8 +68,8 @@ export default function AddPointsModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 w-full sm:max-w-md sm:mx-4 animate-slide-up sm:animate-none">
         <h2 className="text-xl font-bold text-[#1A1A1A] mb-1">Add Points</h2>
         <p className="text-sm text-[#8B7355] mb-4">
           Manually add or deduct points for <span className="font-semibold text-[#1A1A1A]">{student.name}</span>
@@ -73,10 +83,11 @@ export default function AddPointsModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-[#8B7355] mb-1">
+            <label htmlFor="add-points-value" className="block text-sm font-medium text-[#8B7355] mb-1">
               Points
             </label>
             <input
+              id="add-points-value"
               type="number"
               value={points}
               onChange={(e) => setPoints(e.target.value)}
@@ -91,10 +102,11 @@ export default function AddPointsModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#8B7355] mb-1">
+            <label htmlFor="add-points-reason" className="block text-sm font-medium text-[#8B7355] mb-1">
               Reason <span className="text-[#C4A265]">(optional)</span>
             </label>
             <input
+              id="add-points-reason"
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}

@@ -8,7 +8,7 @@ import {
 import { asc, sql, gte, and, eq } from "drizzle-orm";
 import LeaderboardClient from "./client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Leaderboard - Christex Attend",

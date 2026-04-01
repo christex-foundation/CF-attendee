@@ -417,18 +417,18 @@ export default function LeaderboardClient({ entries }: Props) {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#0A0A0A]">
+    <div className="min-h-dvh relative overflow-hidden bg-[#0A0A0A]">
       <ThreeBackground />
 
-      <div className="relative z-10 flex flex-col items-center min-h-screen">
+      <div className="relative z-10 flex flex-col items-center min-h-dvh">
         {/* Header */}
         <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px]">
-          <div className="inline-block px-10 py-5 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl relative overflow-hidden">
+          <div className="inline-block px-6 sm:px-10 py-4 sm:py-5 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C4A265] to-transparent opacity-30" />
-            <h1 className="text-2xl font-extrabold text-white tracking-wide relative z-10">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-wide relative z-10">
               The Race Is On
             </h1>
-            <p className="text-[#C4A265] text-xs font-semibold tracking-widest uppercase mt-1 relative z-10">Week of {weekLabel}</p>
+            <p className="text-[#C4A265] text-[10px] sm:text-xs font-semibold tracking-widest uppercase mt-1 relative z-10">Week of {weekLabel}</p>
           </div>
 
           {/* View Toggle */}
@@ -536,7 +536,7 @@ export default function LeaderboardClient({ entries }: Props) {
                         <p className="text-[#444] text-[9px] sm:text-[10px]">pts</p>
                       </div>
                       {entry.weeklyGain > 0 && (
-                        <span className="text-[#4ADE80] text-[9px] sm:text-[10px] font-bold bg-[#4ADE80]/10 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 hidden xs:inline">
+                        <span className="text-[#4ADE80] text-[9px] sm:text-[10px] font-bold bg-[#4ADE80]/10 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 hidden sm:inline">
                           +{entry.weeklyGain}
                         </span>
                       )}
@@ -557,7 +557,7 @@ export default function LeaderboardClient({ entries }: Props) {
         <div
           ref={containerRef}
           className="flex-1 overflow-y-auto w-full flex justify-center candy-scroll"
-          style={{ maxHeight: "calc(100vh - 200px)" }}
+          style={{ maxHeight: "calc(100dvh - 200px)" }}
         >
           <div ref={svgContainerRef} className="w-full max-w-[520px] px-2">
             {count === 0 ? (
@@ -612,7 +612,7 @@ export default function LeaderboardClient({ entries }: Props) {
                 })}
 
                 {/* Decorations */}
-                {decorations}
+                <g aria-hidden="true">{decorations}</g>
 
                 {/* Student nodes (render worst rank first so top ranks are on top) */}
                 {nodes.map((node) => (
@@ -638,28 +638,28 @@ export default function LeaderboardClient({ entries }: Props) {
 
       {/* Slug Verification Modal */}
       {selectedStudent && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setSelectedStudent(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] mx-4 px-8 py-8" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-6">Access Dashboard</h2>
-            <form onSubmit={handleSlugSubmit} className="space-y-6">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50" onClick={() => setSelectedStudent(null)}>
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-[420px] sm:mx-4 px-6 sm:px-8 py-6 sm:py-8 animate-slide-up sm:animate-none" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#1A1A1A] mb-4 sm:mb-6">Access Dashboard</h2>
+            <form onSubmit={handleSlugSubmit} className="space-y-4 sm:space-y-6">
               {slugError && (
                 <div className="bg-red-50 text-red-600 text-sm p-3 rounded-2xl">{slugError}</div>
               )}
               <div>
-                <label className="block text-base font-medium text-[#B8975C] mb-2">Student ID</label>
+                <label className="block text-sm sm:text-base font-medium text-[#B8975C] mb-2">Student ID</label>
                 <input
                   type="text"
                   value={slugInput}
                   onChange={(e) => { setSlugInput(e.target.value); setSlugError(""); }}
                   placeholder="Enter student ID"
-                  className="w-full px-5 py-4 border-2 border-[#C4A265] rounded-2xl focus:ring-2 focus:ring-[#C4A265] focus:border-[#C4A265] outline-none transition text-[#1A1A1A] bg-[#FDF8F0] text-base placeholder-[#C4B99A]"
+                  className="w-full px-4 sm:px-5 py-3 sm:py-4 border-2 border-[#C4A265] rounded-2xl focus:ring-2 focus:ring-[#C4A265] focus:border-[#C4A265] outline-none transition text-[#1A1A1A] bg-[#FDF8F0] text-sm sm:text-base placeholder-[#C4B99A]"
                   autoFocus
                 />
               </div>
-              <div className="flex gap-4">
-                <button type="button" onClick={() => setSelectedStudent(null)} className="flex-1 py-4 border-2 border-[#E8E0D8] text-[#8B7355] font-medium rounded-2xl hover:bg-[#F5F0EB] transition cursor-pointer text-base">Cancel</button>
-                <button type="submit" disabled={slugLoading} className="flex-1 py-4 bg-[#1A1A1A] text-white font-bold rounded-2xl hover:bg-[#333] transition disabled:opacity-50 cursor-pointer text-base">
-                  {slugLoading ? "Loading..." : "Access Dashboard"}
+              <div className="flex gap-3 sm:gap-4 pb-2 sm:pb-0">
+                <button type="button" onClick={() => setSelectedStudent(null)} className="flex-1 py-3 sm:py-4 border-2 border-[#E8E0D8] text-[#8B7355] font-medium rounded-2xl hover:bg-[#F5F0EB] transition cursor-pointer text-sm sm:text-base">Cancel</button>
+                <button type="submit" disabled={slugLoading} className="flex-1 py-3 sm:py-4 bg-[#1A1A1A] text-white font-bold rounded-2xl hover:bg-[#333] transition disabled:opacity-50 cursor-pointer text-sm sm:text-base">
+                  {slugLoading ? "Loading..." : "Access"}
                 </button>
               </div>
             </form>

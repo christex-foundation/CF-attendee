@@ -233,13 +233,24 @@ export default function ProgressMap({
   const presentCount = sessions.filter((s) => s.status === "present").length;
   const progressPercent = sessions.length > 0 ? (completedCount / sessions.length) * 100 : 0;
 
-  // Dismiss session popover on tap outside
+  // Dismiss session popover on tap outside or Escape key
   const handleBackdropClick = useCallback(() => {
     setActiveSession(null);
   }, []);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setActiveSession(null);
+        setActiveQuest(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <div className="relative z-10 flex flex-col items-center min-h-screen">
+    <div className="relative z-10 flex flex-col items-center min-h-dvh">
       {/* Header */}
       <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px]">
         <div className="inline-flex items-center gap-2 sm:gap-3 px-5 sm:px-8 py-3 sm:py-4 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl">
@@ -301,7 +312,7 @@ export default function ProgressMap({
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto w-full flex justify-center candy-scroll"
-        style={{ maxHeight: "calc(100vh - 130px)" }}
+        style={{ maxHeight: "calc(100dvh - 130px)" }}
       >
         <div ref={svgContainerRef} className="w-full max-w-[520px] px-2">
           <svg
@@ -372,7 +383,7 @@ export default function ProgressMap({
             })}
 
             {/* ─── Decorations ─── */}
-            {decorations}
+            <g aria-hidden="true">{decorations}</g>
 
             {/* ─── Nodes ─── */}
             {nodes.map((node) => (

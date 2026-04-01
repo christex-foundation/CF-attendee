@@ -35,11 +35,16 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const [editChallenge, setEditChallenge] = useState<Challenge | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchStudents = useCallback(async () => {
     try {
+      setFetchError(null);
       const res = await fetch("/api/students");
       if (res.ok) setStudents(await res.json());
+      else setFetchError("Failed to load students");
+    } catch {
+      setFetchError("Failed to load students. Check your connection.");
     } finally {
       setStudentsLoading(false);
     }
@@ -49,6 +54,9 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/challenges");
       if (res.ok) setChallenges(await res.json());
+      else setFetchError("Failed to load challenges");
+    } catch {
+      setFetchError("Failed to load challenges. Check your connection.");
     } finally {
       setChallengesLoading(false);
     }
@@ -58,6 +66,9 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/attendance");
       if (res.ok) setAttendanceRecords(await res.json());
+      else setFetchError("Failed to load attendance");
+    } catch {
+      setFetchError("Failed to load attendance. Check your connection.");
     } finally {
       setAttendanceLoading(false);
     }
@@ -99,8 +110,21 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* ─── Fetch error banner ─── */}
+      {fetchError && (
+        <div className="mb-4 flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <span>{fetchError}</span>
+          <button
+            onClick={() => { setFetchError(null); fetchStudents(); fetchChallenges(); fetchAttendance(); }}
+            className="ml-3 px-3 py-1 bg-red-100 hover:bg-red-200 rounded-lg text-xs font-semibold transition cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* ─── Summary cards ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
         <StatCard label="Students" value={students.length} color="bg-[#F5E6D3]" />
         <StatCard label="Sessions" value={totalSessions} color="bg-[#E3F2FD]" />
         <StatCard label="Challenges" value={challenges.length} color="bg-[#E8F5E9]" />
@@ -108,12 +132,12 @@ export default function DashboardPage() {
         <StatCard label="Archived" value={challenges.filter(c => c.status === "archived").length} color="bg-[#F3E5F5]" />
       </div>
 
-      {/* ─── Tabs ─── */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-1 bg-[#E8E0D8] rounded-xl p-1">
+      {/* ─── Tabs + Actions ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex gap-1 bg-[#E8E0D8] rounded-xl p-1 overflow-x-auto">
           <button
             onClick={() => setTab("students")}
-            className={`px-5 py-2 text-sm font-semibold rounded-lg transition cursor-pointer ${
+            className={`px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
               tab === "students"
                 ? "bg-white text-[#1A1A1A] shadow-sm"
                 : "text-[#8B7355] hover:text-[#1A1A1A]"
@@ -123,7 +147,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => setTab("challenges")}
-            className={`px-5 py-2 text-sm font-semibold rounded-lg transition cursor-pointer ${
+            className={`px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
               tab === "challenges"
                 ? "bg-white text-[#1A1A1A] shadow-sm"
                 : "text-[#8B7355] hover:text-[#1A1A1A]"
@@ -138,7 +162,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => setTab("attendance")}
-            className={`px-5 py-2 text-sm font-semibold rounded-lg transition cursor-pointer ${
+            className={`px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
               tab === "attendance"
                 ? "bg-white text-[#1A1A1A] shadow-sm"
                 : "text-[#8B7355] hover:text-[#1A1A1A]"
@@ -149,19 +173,19 @@ export default function DashboardPage() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           {tab === "students" ? (
             <>
               <button
                 onClick={() => setShowAttendance(true)}
                 disabled={students.length === 0}
-                className="hidden sm:block px-4 py-2.5 bg-[#C4A265] text-white text-sm font-semibold rounded-xl hover:bg-[#B08F50] transition disabled:opacity-50 cursor-pointer"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-[#C4A265] text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-[#B08F50] transition disabled:opacity-50 cursor-pointer"
               >
                 Mark Attendance
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2.5 bg-[#1A1A1A] text-white text-sm font-semibold rounded-xl hover:bg-[#333] transition cursor-pointer"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-[#1A1A1A] text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-[#333] transition cursor-pointer"
               >
                 + Add Student
               </button>
@@ -169,7 +193,7 @@ export default function DashboardPage() {
           ) : tab === "challenges" ? (
             <button
               onClick={() => setShowCreateChallenge(true)}
-              className="px-4 py-2.5 bg-[#1A1A1A] text-white text-sm font-semibold rounded-xl hover:bg-[#333] transition cursor-pointer"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-[#1A1A1A] text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-[#333] transition cursor-pointer"
             >
               + Create Challenge
             </button>
@@ -177,24 +201,13 @@ export default function DashboardPage() {
             <button
               onClick={() => setShowAttendance(true)}
               disabled={students.length === 0}
-              className="px-4 py-2.5 bg-[#C4A265] text-white text-sm font-semibold rounded-xl hover:bg-[#B08F50] transition disabled:opacity-50 cursor-pointer"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-[#C4A265] text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-[#B08F50] transition disabled:opacity-50 cursor-pointer"
             >
               Mark Attendance
             </button>
           )}
         </div>
       </div>
-
-      {/* Mobile attendance button */}
-      {tab === "students" && (
-        <button
-          onClick={() => setShowAttendance(true)}
-          disabled={students.length === 0}
-          className="sm:hidden w-full mb-4 px-4 py-2.5 bg-[#C4A265] text-white text-sm font-semibold rounded-xl hover:bg-[#B08F50] transition disabled:opacity-50 cursor-pointer"
-        >
-          Mark Attendance
-        </button>
-      )}
 
       {/* ─── Students Tab ─── */}
       {tab === "students" && (
@@ -219,9 +232,9 @@ export default function DashboardPage() {
           ) : (
             <>
               {/* Desktop table */}
-              <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden">
+              <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden max-h-[60vh] overflow-y-auto">
                 <table className="w-full">
-                  <thead>
+                  <thead className="sticky top-0 bg-white z-10">
                     <tr className="border-b border-[#E8E0D8]">
                       <th className="text-left px-6 py-4 text-xs font-semibold text-[#8B7355] uppercase tracking-wider">Name</th>
                       <th className="text-left px-6 py-4 text-xs font-semibold text-[#8B7355] uppercase tracking-wider">Slug</th>
@@ -263,7 +276,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Mobile cards */}
-              <div className="sm:hidden space-y-3">
+              <div className="sm:hidden space-y-3 max-h-[60vh] overflow-y-auto">
                 {students.map((student) => (
                   <div key={student.id} className="bg-white rounded-2xl border border-[#E8E0D8] p-4">
                     <div className="flex items-center gap-3 mb-3">
@@ -397,7 +410,8 @@ function IconBtn({ onClick, title, icon, danger, disabled }: { onClick: () => vo
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`w-8 h-8 flex items-center justify-center rounded-lg transition cursor-pointer disabled:opacity-50 ${
+      aria-label={title}
+      className={`w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition cursor-pointer disabled:opacity-50 ${
         danger
           ? "text-red-500 bg-red-50 hover:bg-red-100"
           : "text-[#8B7355] bg-[#F5F0EB] hover:bg-[#E8E0D8] hover:text-[#1A1A1A]"

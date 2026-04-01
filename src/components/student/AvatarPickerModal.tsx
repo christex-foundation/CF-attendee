@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const DICEBEAR_STYLES = [
   "adventurer",
@@ -33,6 +33,14 @@ export default function AvatarPickerModal({
   const [showCustom, setShowCustom] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    if (open) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -94,8 +102,8 @@ export default function AvatarPickerModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#1A1A1A] border border-[#333] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-[#1A1A1A] border border-[#333] rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 w-full sm:max-w-md sm:mx-4 max-h-[85dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-none">
         <h2 className="text-lg font-bold text-white mb-4">Change Avatar</h2>
 
         {error && (
@@ -146,7 +154,7 @@ export default function AvatarPickerModal({
 
         {!showCustom ? (
           /* Avatar grid */
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
             {allOptions.map((opt) => (
               <button
                 key={opt.url}

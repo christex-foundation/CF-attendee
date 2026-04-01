@@ -86,11 +86,11 @@ export default function AttendanceTable({ records, loading }: AttendanceTablePro
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Desktop Table */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden max-h-[60vh]">
+        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 bg-white z-20">
               <tr className="border-b border-[#E8E0D8]">
                 <th className="text-left px-6 py-4 text-xs font-semibold text-[#8B7355] uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[180px]">
                   Student
@@ -185,6 +185,81 @@ export default function AttendanceTable({ records, loading }: AttendanceTablePro
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="sm:hidden space-y-3 max-h-[60vh] overflow-y-auto">
+        {filteredStudents.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-[#E8E0D8]">
+            <p className="text-[#8B7355] text-sm">No students match &ldquo;{search}&rdquo;</p>
+          </div>
+        ) : (
+          filteredStudents.map((student) => {
+            const presentCount = sessions.filter(
+              (s) => lookup.get(`${student.id}-${s.number}`) === "present"
+            ).length;
+            const absentCount = sessions.filter(
+              (s) => lookup.get(`${student.id}-${s.number}`) === "absent"
+            ).length;
+            const rate = sessions.length > 0
+              ? Math.round((presentCount / sessions.length) * 100)
+              : 0;
+
+            return (
+              <div key={student.id} className="bg-white rounded-2xl border border-[#E8E0D8] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <StudentAvatar slug="" name={student.name} size={32} />
+                    <span className="font-semibold text-[#1A1A1A] text-sm">{student.name}</span>
+                  </div>
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
+                      rate >= 80
+                        ? "bg-green-50 text-green-700"
+                        : rate >= 50
+                          ? "bg-yellow-50 text-yellow-700"
+                          : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    {rate}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-[#8B7355]">
+                  <span className="flex items-center gap-1">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-green-50 text-green-600"><CheckIcon /></span>
+                    {presentCount} present
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-red-50 text-red-500"><XIcon /></span>
+                    {absentCount} absent
+                  </span>
+                  <span className="text-[#B0A090]">{sessions.length} sessions</span>
+                </div>
+                {/* Session dots */}
+                <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-[#F5F0EB]">
+                  {sessions.map((s) => {
+                    const status = lookup.get(`${student.id}-${s.number}`);
+                    return (
+                      <div
+                        key={s.number}
+                        title={`Session ${s.number}: ${status || "N/A"}`}
+                        className={`w-6 h-6 rounded-md flex items-center justify-center text-[9px] font-bold ${
+                          status === "present"
+                            ? "bg-green-100 text-green-700"
+                            : status === "absent"
+                              ? "bg-red-100 text-red-600"
+                              : "bg-[#F5F0EB] text-[#D0C8BE]"
+                        }`}
+                      >
+                        {s.number}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

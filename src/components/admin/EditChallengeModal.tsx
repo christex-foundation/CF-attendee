@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Challenge } from "@/types";
+import EmojiPicker from "@/components/ui/EmojiPicker";
 
 interface QuestionInput {
   questionText: string;
@@ -68,6 +69,16 @@ export default function EditChallengeModal({
       setQuestions([]);
     }
   }, [open, challenge]);
+
+  const handleClose = useCallback(() => onClose(), [onClose]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") handleClose();
+    }
+    if (open) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, handleClose]);
 
   if (!open || !challenge) return null;
 
@@ -148,8 +159,8 @@ export default function EditChallengeModal({
   const labelClass = "block text-sm font-medium text-[#8B7355] mb-1";
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 w-full sm:max-w-lg sm:mx-4 max-h-[85dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-none">
         <h2 className="text-xl font-bold text-[#1A1A1A] mb-4">
           Edit Challenge
         </h2>
@@ -221,13 +232,7 @@ export default function EditChallengeModal({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Badge Emoji</label>
-                <input
-                  type="text"
-                  value={badgeEmoji}
-                  onChange={(e) => setBadgeEmoji(e.target.value)}
-                  className={inputClass}
-                  placeholder="e.g. &#x1F3C6;"
-                />
+                <EmojiPicker value={badgeEmoji} onChange={setBadgeEmoji} />
               </div>
               <div>
                 <label className={labelClass}>Badge Name</label>

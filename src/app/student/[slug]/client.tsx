@@ -42,7 +42,7 @@ export default function StudentMapClient({
   }, [studentSlug]);
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#0A0A0A]">
+    <div className="min-h-dvh relative overflow-hidden bg-[#0A0A0A]">
       <ThreeBackground />
       <ProgressMap
         sessions={sessions}

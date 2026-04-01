@@ -19,14 +19,20 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
-    // Only allow DiceBear URLs or valid image URLs
+    // Only allow DiceBear URLs or valid HTTPS image URLs
     const isDiceBear = avatarUrl.startsWith("https://api.dicebear.com/");
-    const isImageUrl = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(avatarUrl);
-    const isGenericHttps = avatarUrl.startsWith("https://");
+    const isImageUrl = /^https:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(avatarUrl);
 
-    if (!isDiceBear && !isImageUrl && !isGenericHttps) {
+    if (!isDiceBear && !isImageUrl) {
       return NextResponse.json(
-        { error: "Invalid avatar URL. Must be a valid HTTPS image URL." },
+        { error: "Invalid avatar URL. Must be a DiceBear URL or an HTTPS image URL ending in .jpg, .png, .gif, .webp, or .svg." },
+        { status: 400 }
+      );
+    }
+
+    if (avatarUrl.length > 2048) {
+      return NextResponse.json(
+        { error: "Avatar URL is too long." },
         { status: 400 }
       );
     }

@@ -6,7 +6,7 @@ import {
   challenges,
   attendance,
 } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 interface Params {
   params: Promise<{ slug: string }>;
@@ -45,18 +45,15 @@ export async function GET(_request: NextRequest, { params }: Params) {
       .filter((p) => p.badgeEarned && p.completed)
       .map((p) => p.challengeId);
 
-    // Get badge details
-    const badgeDetails: { emoji: string; name: string }[] = [];
-    for (const challengeId of badges) {
-      const [c] = await db
-        .select({ badgeEmoji: challenges.badgeEmoji, badgeName: challenges.badgeName })
-        .from(challenges)
-        .where(eq(challenges.id, challengeId))
-        .limit(1);
-      if (c && c.badgeEmoji && c.badgeName) {
-        badgeDetails.push({ emoji: c.badgeEmoji, name: c.badgeName });
-      }
-    }
+    // Get badge details in a single query
+    const badgeDetails: { emoji: string; name: string }[] = badges.length > 0
+      ? (await db
+          .select({ badgeEmoji: challenges.badgeEmoji, badgeName: challenges.badgeName })
+          .from(challenges)
+          .where(inArray(challenges.id, badges)))
+          .filter((c): c is { badgeEmoji: string; badgeName: string } => !!(c.badgeEmoji && c.badgeName))
+          .map((c) => ({ emoji: c.badgeEmoji, name: c.badgeName }))
+      : [];
 
     return NextResponse.json({
       totalPoints,

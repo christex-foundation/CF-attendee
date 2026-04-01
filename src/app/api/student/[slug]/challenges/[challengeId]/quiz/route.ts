@@ -89,6 +89,13 @@ export async function POST(request: NextRequest, { params }: Params) {
       .where(eq(quizQuestions.challengeId, cid))
       .orderBy(asc(quizQuestions.orderIndex));
 
+    if (answers.length !== questions.length) {
+      return NextResponse.json(
+        { error: `Expected ${questions.length} answers, got ${answers.length}` },
+        { status: 400 }
+      );
+    }
+
     let score = 0;
     for (let i = 0; i < questions.length; i++) {
       if (answers[i] === questions[i].correctIndex) {

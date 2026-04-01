@@ -49,6 +49,14 @@ export default function SideQuestPanel({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    if (open) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  useEffect(() => {
     if (open && challenge.type === "quiz" && !completed) {
       fetch(`/api/student/${studentSlug}/challenges/${challenge.id}/quiz`)
         .then((r) => r.json())

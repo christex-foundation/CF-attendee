@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AddStudentModalProps {
   open: boolean;
@@ -16,6 +16,14 @@ export default function AddStudentModal({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    if (open) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -48,8 +56,8 @@ export default function AddStudentModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 w-full sm:max-w-md sm:mx-4 animate-slide-up sm:animate-none">
         <h2 className="text-xl font-bold text-[#1A1A1A] mb-4">Add Student</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,10 +68,11 @@ export default function AddStudentModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-[#8B7355] mb-1">
+            <label htmlFor="add-student-name" className="block text-sm font-medium text-[#8B7355] mb-1">
               Student Name
             </label>
             <input
+              id="add-student-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
