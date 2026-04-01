@@ -154,7 +154,7 @@ function RankNode({
   const attendancePoints = entry.sessionsPresent * 10;
   const tooltipW = 180;
   const tooltipH = 165;
-  const tooltipX = Math.max(5, Math.min(515 - tooltipW, cx - tooltipW / 2));
+  const tooltipX = Math.max(5, cx - tooltipW / 2);
   const tooltipY = cy - r - tooltipH - 20;
 
   return (
@@ -301,47 +301,98 @@ export default function LeaderboardClient({ entries }: Props) {
   const router = useRouter();
   const weekLabel = getWeekLabel();
 
-  // Responsive width measurement
-  const [containerWidth, setContainerWidth] = useState(520);
+  // Detect desktop + window size for responsive layout
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
-    const el = svgContainerRef.current;
-    if (!el) return;
-    const update = () => setContainerWidth(el.offsetWidth);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
+    const mql = window.matchMedia("(min-width: 1024px)");
+    setIsDesktop(mql.matches);
+    const handleMql = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", handleMql);
+
+    const updateSize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    updateSize();
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      mql.removeEventListener("change", handleMql);
+      window.removeEventListener("resize", updateSize);
+    };
   }, []);
 
-  const isNarrow = containerWidth < 400;
+  const isNarrow = !isDesktop && windowSize.width > 0 && windowSize.width < 400;
   const count = entries.length;
-
-  // Scale spacing based on student count to keep map manageable
-  const mapWidth = 520;
-  const nodeSpacingY = count > 60 ? 55 : count > 30 ? 70 : count > 15 ? 85 : 100;
-  const nodeRadius = count > 60 ? 16 : count > 30 ? 20 : count > 15 ? 24 : 28;
-  const centerX = mapWidth / 2;
-  const amplitude = isNarrow ? 100 : 130;
-  const topPadding = 130;
-  const bottomPadding = 120;
 
   // Sort by rank descending (worst rank at bottom, rank 1 at top)
   const sorted = useMemo(() => [...entries].sort((a, b) => b.rank - a.rank), [entries]);
 
-  const totalHeight = topPadding + Math.max(count, 1) * nodeSpacingY + bottomPadding;
+  // Scale node radius based on student count
+  const nodeRadius = count > 60 ? 16 : count > 30 ? 20 : count > 15 ? 24 : 28;
 
-  // Position each student along the sine wave road
-  const nodes = useMemo(() => {
-    return sorted.map((entry, index) => {
-      const cy = totalHeight - bottomPadding - index * nodeSpacingY;
-      const cx = centerX + Math.sin((index * Math.PI) / 2.2 - Math.PI / 2) * amplitude;
-      return { ...entry, cx, cy };
-    });
-  }, [sorted, totalHeight, centerX, amplitude, bottomPadding, nodeSpacingY]);
+  // Compute layout — desktop: landscape snake, mobile: vertical scroll
+  const topPadding = 130;
+  const bottomPadding = 120;
+
+  const layout = useMemo(() => {
+    if (isDesktop && windowSize.width > 0) {
+      // Desktop: landscape snake layout — grows as students progress
+      const mw = windowSize.width;
+      const pad = { x: 90, top: 5, bottom: 80 };
+      const usableW = mw - pad.x * 2;
+
+      const nodesPerRow = Math.max(3, Math.min(sorted.length, Math.round(usableW / 140)));
+      const rowSpacingFixed = 180; // fixed comfortable spacing between rows
+      const colSpacing = nodesPerRow > 1 ? usableW / (nodesPerRow - 1) : 0;
+      const numRows = Math.ceil(sorted.length / nodesPerRow);
+
+      const th = pad.top + numRows * rowSpacingFixed + pad.bottom;
+
+      const n = sorted.map((entry, index) => {
+        const row = Math.floor(index / nodesPerRow);
+        const posInRow = index % nodesPerRow;
+        const isReversed = row % 2 === 1;
+        const col = isReversed ? (nodesPerRow - 1 - posInRow) : posInRow;
+
+        const t = nodesPerRow > 2 ? posInRow / (nodesPerRow - 1) : 0.5;
+        const wave = Math.sin(t * Math.PI) * (rowSpacingFixed * 0.25);
+
+        const cx = pad.x + col * colSpacing;
+        const cy = th - pad.bottom - row * rowSpacingFixed + wave;
+
+        return { ...entry, cx, cy };
+      });
+
+      return { mapWidth: mw, totalHeight: th, centerX: mw / 2, nodes: n };
+    } else {
+      // Mobile: original vertical scroll layout
+      const mw = 520;
+      const nodeSpacingY = count > 60 ? 55 : count > 30 ? 70 : count > 15 ? 85 : 100;
+      const amp = isNarrow ? 100 : 130;
+      const th = topPadding + Math.max(count, 1) * nodeSpacingY + bottomPadding;
+
+      const n = sorted.map((entry, index) => {
+        const cy = th - bottomPadding - index * nodeSpacingY;
+        const cx = mw / 2 + Math.sin((index * Math.PI) / 2.2 - Math.PI / 2) * amp;
+        return { ...entry, cx, cy };
+      });
+
+      return { mapWidth: mw, totalHeight: th, centerX: mw / 2, nodes: n };
+    }
+  }, [isDesktop, windowSize.width, windowSize.height, sorted, count, isNarrow, topPadding, bottomPadding]);
+
+  const { mapWidth, totalHeight, centerX, nodes } = layout;
 
   function buildRoadPath(x1: number, y1: number, x2: number, y2: number): string {
-    const dy = (y2 - y1) * 0.4;
-    return `M${x1},${y1} C${x1},${y1 + dy} ${x2},${y2 - dy} ${x2},${y2}`;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      const cdx = dx * 0.4;
+      return `M${x1},${y1} C${x1 + cdx},${y1} ${x2 - cdx},${y2} ${x2},${y2}`;
+    } else {
+      const cdy = dy * 0.4;
+      return `M${x1},${y1} C${x1},${y1 + cdy} ${x2},${y2 - cdy} ${x2},${y2}`;
+    }
   }
 
   // Candy decorations (spaced out to avoid clutter)
@@ -376,22 +427,27 @@ export default function LeaderboardClient({ entries }: Props) {
     return decos;
   }, [nodes, count]);
 
-  // Scroll to rank 1 on mount
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || nodes.length === 0) return;
-    const leader = nodes.find((n) => n.rank === 1);
-    if (!leader) return;
-    const svgEl = container.querySelector("svg");
-    if (!svgEl) return;
-    const scale = svgEl.clientHeight / totalHeight;
-    const nodePixelY = leader.cy * scale;
-    const scrollTarget = nodePixelY - container.clientHeight / 2;
-    container.scrollTo({ top: Math.max(0, scrollTarget), behavior: "smooth" });
-  }, [nodes, totalHeight]);
-
   // View mode toggle
   const [viewMode, setViewMode] = useState<"map" | "ranking">("ranking");
+
+  // Scroll to rank 1 when map view is shown
+  useEffect(() => {
+    if (viewMode !== "map") return;
+    // Small delay to let the map container mount and the SVG render
+    const timer = setTimeout(() => {
+      const container = containerRef.current;
+      if (!container || nodes.length === 0) return;
+      const leader = nodes.find((n) => n.rank === 1);
+      if (!leader) return;
+      const svgEl = container.querySelector("svg");
+      if (!svgEl) return;
+      const scale = svgEl.clientHeight / totalHeight;
+      const nodePixelY = leader.cy * scale;
+      const scrollTarget = nodePixelY - container.clientHeight / 2;
+      container.scrollTo({ top: Math.max(0, scrollTarget), behavior: "smooth" });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [viewMode, nodes, totalHeight]);
 
   // Slug verification modal
   const [selectedStudent, setSelectedStudent] = useState<LeaderboardEntry | null>(null);
@@ -422,7 +478,7 @@ export default function LeaderboardClient({ entries }: Props) {
 
       <div className="relative z-10 flex flex-col items-center min-h-dvh">
         {/* Header */}
-        <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px]">
+        <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px] mx-auto shrink-0">
           <div className="inline-block px-6 sm:px-10 py-4 sm:py-5 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C4A265] to-transparent opacity-30" />
             <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-wide relative z-10">
@@ -431,23 +487,6 @@ export default function LeaderboardClient({ entries }: Props) {
             <p className="text-[#C4A265] text-[10px] sm:text-xs font-semibold tracking-widest uppercase mt-1 relative z-10">Week of {weekLabel}</p>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex items-center justify-center gap-1 mt-4 bg-[#131313] border border-[#2A2A2A] rounded-xl p-1 w-fit mx-auto">
-            <button
-              onClick={() => setViewMode("ranking")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${viewMode === "ranking" ? "bg-[#C4A265] text-[#1A1A1A]" : "text-[#666] hover:text-white"}`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6" /></svg>
-              Ranking
-            </button>
-            <button
-              onClick={() => setViewMode("map")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${viewMode === "map" ? "bg-[#C4A265] text-[#1A1A1A]" : "text-[#666] hover:text-white"}`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 7 8 11.7z" /></svg>
-              Map
-            </button>
-          </div>
         </div>
 
         {/* ─── RANKING VIEW ─── */}
@@ -556,10 +595,12 @@ export default function LeaderboardClient({ entries }: Props) {
         {viewMode === "map" && (
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto w-full flex justify-center candy-scroll"
-          style={{ maxHeight: "calc(100dvh - 200px)" }}
+          className={`flex-1 w-full overflow-y-auto candy-scroll ${
+            isDesktop ? "" : "flex justify-center"
+          }`}
+          style={{ maxHeight: isDesktop ? "calc(100dvh - 120px)" : "calc(100dvh - 200px)" }}
         >
-          <div ref={svgContainerRef} className="w-full max-w-[520px] px-2">
+          <div ref={svgContainerRef} className={isDesktop ? "w-full" : "w-full px-2 max-w-[520px]"}>
             {count === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <span className="text-4xl">&#x1F3C1;</span>
@@ -573,24 +614,62 @@ export default function LeaderboardClient({ entries }: Props) {
               >
                 <CandyLandscape width={mapWidth} height={totalHeight} />
 
-                {/* START badge at bottom */}
-                <g>
-                  <rect x={centerX - 35} y={totalHeight - bottomPadding + 40} width={70} height={24} rx={12} fill="#C4A265" />
-                  <text x={centerX} y={totalHeight - bottomPadding + 53} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={10} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="1">
-                    START
-                  </text>
-                </g>
+                {/* START badge at first node */}
+                {nodes.length > 0 && (
+                  <g>
+                    <rect x={nodes[0].cx - 35} y={nodes[0].cy + nodeRadius + 20} width={70} height={24} rx={12} fill="#C4A265" />
+                    <text x={nodes[0].cx} y={nodes[0].cy + nodeRadius + 33} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={10} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="1">
+                      START
+                    </text>
+                  </g>
+                )}
 
-                {/* FINISH / Trophy at top */}
+                {/* Road ahead — short fading continuation beyond last student */}
                 {nodes.length > 0 && (() => {
-                  const topNode = nodes[nodes.length - 1];
+                  const last = nodes[nodes.length - 1];
+                  const lastIndex = sorted.length - 1;
+                  const pts: { cx: number; cy: number }[] = [{ cx: last.cx, cy: last.cy }];
+
+                  for (let g = 1; g <= 5; g++) {
+                    const gi = lastIndex + g;
+                    if (isDesktop && windowSize.width > 0) {
+                      const usableW = mapWidth - 90 * 2;
+                      const npr = Math.max(3, Math.min(sorted.length, Math.round(usableW / 140)));
+                      const colSp = npr > 1 ? usableW / (npr - 1) : 0;
+                      const row = Math.floor(gi / npr);
+                      const posInRow = gi % npr;
+                      const rev = row % 2 === 1;
+                      const col = rev ? (npr - 1 - posInRow) : posInRow;
+                      const t = npr > 2 ? posInRow / (npr - 1) : 0.5;
+                      const wave = Math.sin(t * Math.PI) * (180 * 0.25);
+                      pts.push({ cx: 90 + col * colSp, cy: totalHeight - 80 - row * 180 + wave });
+                    } else {
+                      const nsy = count > 60 ? 55 : count > 30 ? 70 : count > 15 ? 85 : 100;
+                      const amp = isNarrow ? 100 : 130;
+                      pts.push({
+                        cx: mapWidth / 2 + Math.sin((gi * Math.PI) / 2.2 - Math.PI / 2) * amp,
+                        cy: totalHeight - bottomPadding - gi * nsy,
+                      });
+                    }
+                  }
+
                   return (
                     <g>
-                      <text x={topNode.cx} y={topNode.cy - nodeRadius - 50} textAnchor="middle" fontSize={22}>&#x1F3C6;</text>
-                      <rect x={topNode.cx - 40} y={topNode.cy - nodeRadius - 80} width={80} height={22} rx={11} fill="#C4A265" />
-                      <text x={topNode.cx} y={topNode.cy - nodeRadius - 68} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={8} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="0.5">
-                        LEADERBOARD
-                      </text>
+                      {pts.map((pt, i) => {
+                        if (i === 0) return null;
+                        const prev = pts[i - 1];
+                        const d = buildRoadPath(prev.cx, prev.cy, pt.cx, pt.cy);
+                        const fade = 1 - (i / pts.length) * 0.6;
+                        return (
+                          <g key={`ghost-${i}`} opacity={fade * 0.7}>
+                            <path d={d} fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth={32} strokeLinecap="round" />
+                            <path d={d} fill="none" stroke="#3A3A3A" strokeWidth={24} strokeLinecap="round" />
+                            <path d={d} fill="none" stroke="#C4A265" strokeWidth={26} strokeLinecap="round" opacity={0.1} />
+                            <path d={d} fill="none" stroke="#4A4A4A" strokeWidth={24} strokeLinecap="round" opacity={0.25} />
+                            <path d={d} fill="none" stroke="#C4A265" strokeWidth={1.5} strokeLinecap="round" strokeDasharray="14 10" opacity={0.4} className="animate-road-dash" />
+                          </g>
+                        );
+                      })}
                     </g>
                   );
                 })()}
@@ -635,6 +714,24 @@ export default function LeaderboardClient({ entries }: Props) {
           <Link href="/" className="text-[#444] text-sm hover:text-[#C4A265] transition">Back to Home</Link>
         </div>
       </div>
+
+      {/* Floating view toggle FAB */}
+      <button
+        onClick={() => setViewMode(viewMode === "ranking" ? "map" : "ranking")}
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-[#C4A265] text-[#1A1A1A] shadow-lg shadow-black/40 hover:bg-[#D4B275] active:scale-95 transition-all cursor-pointer font-semibold text-sm"
+      >
+        {viewMode === "ranking" ? (
+          <>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 7 8 11.7z" /></svg>
+            Map
+          </>
+        ) : (
+          <>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6" /></svg>
+            Ranking
+          </>
+        )}
+      </button>
 
       {/* Slug Verification Modal */}
       {selectedStudent && (
