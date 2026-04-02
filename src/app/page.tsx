@@ -8,7 +8,7 @@ export default function HomePage() {
 
       <div className="relative z-10 w-full max-w-md mx-4 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-white mb-2 tracking-tight">
-          <span className="text-[#C4A265]">Christex</span> Attend
+          <span className="text-[#C4A265]">Quest</span>Log
         </h1>
         <p className="text-[#666] text-sm mb-10">
           Gamified attendance tracking for the Engineering Cohort

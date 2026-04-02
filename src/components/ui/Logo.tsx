@@ -60,8 +60,8 @@ export default function Logo({ size = "md", className = "" }: LogoProps) {
       </svg>
       <div className="flex flex-col leading-tight">
         <span className={`${s.text} font-extrabold tracking-tight`}>
-          <span className="text-[#C4A265]">Christex</span>{" "}
-          <span className="text-white">Attend</span>
+          <span className="text-[#C4A265]">Quest</span>
+          <span className="text-white">Log</span>
         </span>
       </div>
     </div>

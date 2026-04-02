@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props) {
     title: `${student.name} - Attendance Map`,
     description: `View ${student.name}'s attendance progress and achievements`,
     openGraph: {
-      title: `${student.name} - Christex Attend`,
+      title: `${student.name} - QuestLog`,
       description: `View ${student.name}'s attendance progress and achievements`,
     },
   };

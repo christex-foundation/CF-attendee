@@ -1,6 +1,6 @@
-# Christex Attend
+# QuestLog
 
-Gamified attendance tracking system for the Christex Engineering Cohort. Turns attendance into an interactive experience with progress maps, leaderboards, challenges, and badges.
+Gamified attendance tracking system. Turns attendance into an interactive experience with progress maps, leaderboards, challenges, and badges.
 
 ## Features
 
@@ -130,4 +130,4 @@ src/
 
 ## License
 
-Private project built for the Christex Engineering Cohort.
+Private project — QuestLog.

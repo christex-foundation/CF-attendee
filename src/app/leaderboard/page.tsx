@@ -11,14 +11,14 @@ import LeaderboardClient from "./client";
 export const revalidate = 60;
 
 export const metadata = {
-  title: "Leaderboard - Christex Attend",
+  title: "Leaderboard - QuestLog",
   description: "See who's leading the attendance race!",
   openGraph: {
-    title: "Leaderboard - Christex Attend",
+    title: "Leaderboard - QuestLog",
     description: "See who's leading the attendance race!",
   },
   twitter: {
-    title: "Leaderboard - Christex Attend",
+    title: "Leaderboard - QuestLog",
     description: "See who's leading the attendance race!",
   },
 };

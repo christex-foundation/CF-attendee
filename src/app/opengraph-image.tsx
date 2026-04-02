@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Christex Attend - Gamified Attendance Tracking";
+export const alt = "QuestLog - Gamified Attendance Tracking";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -87,7 +87,7 @@ export default async function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            Christex
+            Quest
           </span>
           <span
             style={{
@@ -97,7 +97,7 @@ export default async function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            Attend
+            Log
           </span>
         </div>
 

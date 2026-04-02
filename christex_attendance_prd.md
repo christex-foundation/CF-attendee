@@ -1,8 +1,8 @@
-# Christex Attend - Product Requirements Document
+# QuestLog - Product Requirements Document
 
 ## 1. Overview
 
-Christex Attend is a gamified attendance tracking system built for the Christex Engineering Cohort. It transforms mundane attendance tracking into an engaging, game-like experience where students progress through a visual map, earn points, complete challenges, collect badges, and compete on a live leaderboard. Only admins can manage the system; students interact through public, personalized pages.
+QuestLog is a gamified attendance tracking system. It transforms mundane attendance tracking into an engaging, game-like experience where students progress through a visual map, earn points, complete challenges, collect badges, and compete on a live leaderboard. Only admins can manage the system; students interact through public, personalized pages.
 
 ---
 
