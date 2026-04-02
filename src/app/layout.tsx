@@ -9,11 +9,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "QuestLog",
-  description: "Gamified attendance tracking with quests, badges, and streaks",
+  description: "Level up your class. Track the adventure with leaderboards, challenges, badges & streaks.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://questlog.vercel.app"),
   openGraph: {
     title: "QuestLog",
-    description: "Gamified attendance tracking with leaderboards, challenges, badges & streaks",
+    description: "Level up your class. Track the adventure with leaderboards, challenges, badges & streaks.",
     siteName: "QuestLog",
     type: "website",
     images: [
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "QuestLog",
-    description: "Gamified attendance tracking with leaderboards, challenges, badges & streaks",
+    description: "Level up your class. Track the adventure with leaderboards, challenges, badges & streaks.",
     images: ["/opengraph-image"],
   },
 };
