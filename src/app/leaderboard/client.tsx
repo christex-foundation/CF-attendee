@@ -129,18 +129,17 @@ function RankNode({
   entry,
   nodeRadius,
   onClick,
+  onHover,
 }: {
   cx: number;
   cy: number;
   entry: LeaderboardEntry;
   nodeRadius: number;
   onClick: () => void;
+  onHover: (hovered: boolean) => void;
 }) {
-  const [hovered, setHovered] = useState(false);
   const isTop3 = entry.rank <= 3;
   const r = nodeRadius;
-  const hue = nameToHue(entry.name);
-  const initials = getInitials(entry.name);
   const gradId = `rank-grad-${entry.id}`;
   const clipId = `rank-clip-${entry.id}`;
 
@@ -151,21 +150,15 @@ function RankNode({
   };
   const c = rankConfigs[entry.rank] || { outer: "#8B7AA0", fill: "#6B5B7B", gradLight: "#9B8AAB", gradDark: "#5A4A6A", stroke: "#4A3A5A", shadow: "#3A2A4A" };
 
-  const attendancePoints = entry.sessionsPresent * 10;
-  const tooltipW = 180;
-  const tooltipH = 165;
-  const tooltipX = Math.max(5, cx - tooltipW / 2);
-  const tooltipY = cy - r - tooltipH - 20;
-
   return (
     <g>
       <g
         className={`${entry.rank === 1 ? "animate-bounce-node" : ""} cursor-pointer`}
         onClick={onClick}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onTouchStart={() => setHovered(true)}
-        onTouchEnd={() => setHovered(false)}
+        onMouseEnter={() => onHover(true)}
+        onMouseLeave={() => onHover(false)}
+        onTouchStart={() => onHover(true)}
+        onTouchEnd={() => onHover(false)}
       >
         <defs>
           <radialGradient id={gradId} cx="35%" cy="30%" r="65%">
@@ -238,58 +231,6 @@ function RankNode({
         )}
       </g>
 
-      {/* Hover tooltip */}
-      {hovered && (
-        <foreignObject x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} style={{ pointerEvents: "none", overflow: "visible" }}>
-          <div style={{
-            background: "linear-gradient(135deg, #1A1A1A 0%, #111 100%)",
-            borderRadius: 16, padding: "14px 16px", color: "white",
-            fontFamily: "Inter, system-ui, sans-serif",
-            border: `1.5px solid ${isTop3 ? c.outer : "#333"}`,
-            boxShadow: `0 16px 40px rgba(0,0,0,0.6)`,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: `hsl(${hue}, 50%, 40%)`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 800, color: "white",
-                border: `2px solid ${isTop3 ? c.outer : "#444"}`,
-              }}>{initials}</div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</div>
-                <div style={{ fontSize: 9, color: "#666" }}>Rank #{entry.rank}</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
-                <span style={{ color: "#8B7355" }}>Attendance</span>
-                <span style={{ fontWeight: 700, color: "#4ADE80" }}>{attendancePoints} pts</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
-                <span style={{ color: "#8B7355" }}>Challenges</span>
-                <span style={{ fontWeight: 700, color: "#A78BFA" }}>{entry.challengePoints} pts</span>
-              </div>
-              {entry.manualPoints > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
-                  <span style={{ color: "#8B7355" }}>Bonus</span>
-                  <span style={{ fontWeight: 700, color: "#FBBF24" }}>{entry.manualPoints} pts</span>
-                </div>
-              )}
-              {entry.streak > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
-                  <span style={{ color: "#8B7355" }}>Streak</span>
-                  <span style={{ fontWeight: 700, color: "#FF8C00" }}>&#x1F525; {entry.streak}</span>
-                </div>
-              )}
-              <div style={{ borderTop: "1px solid #2A2A2A", marginTop: 4, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ fontWeight: 700 }}>Total</span>
-                <span style={{ fontWeight: 900, color: "#C4A265" }}>{entry.score} pts</span>
-              </div>
-            </div>
-          </div>
-        </foreignObject>
-      )}
     </g>
   );
 }
@@ -429,6 +370,10 @@ export default function LeaderboardClient({ entries }: Props) {
 
   // View mode toggle
   const [viewMode, setViewMode] = useState<"map" | "ranking">("ranking");
+
+  // Hovered node for map tooltip (rendered as top-level overlay so it's never obscured)
+  const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
+  const hoveredNode = hoveredNodeId !== null ? nodes.find((n) => n.id === hoveredNodeId) : null;
 
   // Scroll to rank 1 when map view is shown
   useEffect(() => {
@@ -702,8 +647,82 @@ export default function LeaderboardClient({ entries }: Props) {
                     entry={node}
                     nodeRadius={nodeRadius}
                     onClick={() => handleAvatarClick(node)}
+                    onHover={(h) => setHoveredNodeId(h ? node.id : null)}
                   />
                 ))}
+
+                {/* Tooltip overlay — rendered last so it's always on top */}
+                {hoveredNode && (() => {
+                  const e = hoveredNode;
+                  const r = nodeRadius;
+                  const tooltipW = 180;
+                  const tooltipH = 165;
+                  const tooltipX = Math.max(5, Math.min(e.cx - tooltipW / 2, mapWidth - tooltipW - 5));
+                  const fitsAbove = e.cy - r - tooltipH - 20 >= 0;
+                  const tooltipY = fitsAbove ? e.cy - r - tooltipH - 20 : e.cy + r + 20;
+                  const isTop3 = e.rank <= 3;
+                  const rankConfigs: Record<number, { outer: string }> = {
+                    1: { outer: "#FFD700" }, 2: { outer: "#C0C0C0" }, 3: { outer: "#CD7F32" },
+                  };
+                  const borderColor = rankConfigs[e.rank]?.outer || "#333";
+                  const hue = nameToHue(e.name);
+                  const initials = getInitials(e.name);
+                  const attendancePoints = e.sessionsPresent * 10;
+
+                  return (
+                    <foreignObject x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} style={{ pointerEvents: "none", overflow: "visible" }}>
+                      <div style={{
+                        background: "linear-gradient(135deg, #1A1A1A 0%, #111 100%)",
+                        borderRadius: 16, padding: "14px 16px", color: "white",
+                        fontFamily: "Inter, system-ui, sans-serif",
+                        border: `1.5px solid ${borderColor}`,
+                        boxShadow: `0 16px 40px rgba(0,0,0,0.6)`,
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                          <img
+                            src={e.avatarUrl || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(e.slug)}`}
+                            alt={initials}
+                            style={{
+                              width: 28, height: 28, borderRadius: "50%",
+                              objectFit: "cover",
+                              border: `2px solid ${isTop3 ? borderColor : "#444"}`,
+                            }}
+                          />
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.name}</div>
+                            <div style={{ fontSize: 9, color: "#666" }}>Rank #{e.rank}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                            <span style={{ color: "#8B7355" }}>Attendance</span>
+                            <span style={{ fontWeight: 700, color: "#4ADE80" }}>{attendancePoints} pts</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                            <span style={{ color: "#8B7355" }}>Challenges</span>
+                            <span style={{ fontWeight: 700, color: "#A78BFA" }}>{e.challengePoints} pts</span>
+                          </div>
+                          {e.manualPoints > 0 && (
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                              <span style={{ color: "#8B7355" }}>Bonus</span>
+                              <span style={{ fontWeight: 700, color: "#FBBF24" }}>{e.manualPoints} pts</span>
+                            </div>
+                          )}
+                          {e.streak > 0 && (
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                              <span style={{ color: "#8B7355" }}>Streak</span>
+                              <span style={{ fontWeight: 700, color: "#FF8C00" }}>&#x1F525; {e.streak}</span>
+                            </div>
+                          )}
+                          <div style={{ borderTop: "1px solid #2A2A2A", marginTop: 4, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                            <span style={{ fontWeight: 700 }}>Total</span>
+                            <span style={{ fontWeight: 900, color: "#C4A265" }}>{e.score} pts</span>
+                          </div>
+                        </div>
+                      </div>
+                    </foreignObject>
+                  );
+                })()}
               </svg>
             )}
           </div>

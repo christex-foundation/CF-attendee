@@ -13,21 +13,11 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #C4A265, #8B7355)",
+          background: "linear-gradient(145deg, #1A1A1A, #111)",
           borderRadius: 8,
         }}
       >
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 900,
-            color: "#1A1A1A",
-            fontFamily: "Inter, system-ui, sans-serif",
-            lineHeight: 1,
-          }}
-        >
-          C
-        </span>
+        <span style={{ fontSize: 24, lineHeight: 1 }}>🍬</span>
       </div>
     ),
     { ...size }
