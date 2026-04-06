@@ -51,7 +51,7 @@ export default function SideQuestNode({
   const size = 24;
   const c = typeConfigs[type];
   const gradId = `sq-grad-${cx}-${cy}`;
-  const opacity = completed ? 1 : 0.7;
+  const opacity = completed ? 1 : 0.85;
 
   // Hexagon points
   function hexPoints(cx: number, cy: number, r: number): string {
@@ -68,7 +68,7 @@ export default function SideQuestNode({
       onClick={onClick}
       style={{ cursor: "pointer" }}
       opacity={opacity}
-      className={completed ? "animate-side-quest-glow" : ""}
+      className={completed ? "animate-side-quest-glow" : "animate-pulse-quest"}
     >
       <defs>
         <radialGradient id={gradId} cx="35%" cy="30%" r="65%">

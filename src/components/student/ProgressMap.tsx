@@ -308,6 +308,34 @@ export default function ProgressMap({
         </div>
       </div>
 
+      {/* Active Challenges Banner */}
+      {(() => {
+        const pending = sideQuests.filter((sq) => !sq.progress?.completed);
+        if (pending.length === 0) return null;
+        return (
+          <button
+            type="button"
+            onClick={() => {
+              // Scroll to and open the first pending quest
+              const first = pending[0];
+              setActiveQuest(first);
+            }}
+            className="mx-4 mt-2 mb-1 w-full max-w-[520px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-900/60 to-purple-800/40 border border-purple-500/30 flex items-center gap-3 cursor-pointer hover:border-purple-400/50 transition relative overflow-hidden group"
+          >
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500" />
+            </span>
+            <span className="text-sm font-semibold text-purple-200">
+              {pending.length} active {pending.length === 1 ? "challenge" : "challenges"} available
+            </span>
+            <span className="ml-auto text-xs text-purple-400 font-medium group-hover:text-purple-300 transition">
+              View &rarr;
+            </span>
+          </button>
+        );
+      })()}
+
       {/* Scrollable Map */}
       <div
         ref={containerRef}

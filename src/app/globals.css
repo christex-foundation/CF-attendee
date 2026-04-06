@@ -116,6 +116,16 @@ html, body {
   animation: side-quest-glow 2.5s ease-in-out infinite;
 }
 
+@keyframes pulse-quest {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+.animate-pulse-quest {
+  animation: pulse-quest 2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .animate-badge-earned {
   animation: badge-earned 0.5s ease-out forwards;
 }
