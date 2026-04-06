@@ -730,7 +730,7 @@ export default function LeaderboardClient({ entries }: Props) {
         )}
 
         <div className="py-3 relative z-20">
-          <Link href="/" className="text-[#444] text-sm hover:text-[#C4A265] transition">Back to Home</Link>
+          <Link href="/admin/login" className="text-[#444] text-sm hover:text-[#C4A265] transition">Admin</Link>
         </div>
       </div>
 
