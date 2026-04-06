@@ -31,6 +31,9 @@ export interface Challenge {
   badgeName: string | null;
   anchorSession: number;
   streakRequired: number | null;
+  deadline: string | null;
+  decayEnabled: boolean;
+  decayStartPoints: number;
   createdAt: string;
 }
 

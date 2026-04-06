@@ -32,6 +32,10 @@ export default function EditChallengeModal({
   const [anchorSession, setAnchorSession] = useState(1);
   const [streakRequired, setStreakRequired] = useState(3);
   const [questions, setQuestions] = useState<QuestionInput[]>([]);
+  const [isTimeBound, setIsTimeBound] = useState(false);
+  const [deadline, setDeadline] = useState("");
+  const [decayEnabled, setDecayEnabled] = useState(false);
+  const [decayStartPoints, setDecayStartPoints] = useState(40);
   const [loading, setLoading] = useState(false);
   const [fetchingQuestions, setFetchingQuestions] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +50,10 @@ export default function EditChallengeModal({
     setBadgeName(challenge.badgeName || "");
     setAnchorSession(challenge.anchorSession);
     setStreakRequired(challenge.streakRequired || 3);
+    setIsTimeBound(!!challenge.deadline);
+    setDeadline(challenge.deadline ? new Date(challenge.deadline).toISOString().slice(0, 16) : "");
+    setDecayEnabled(challenge.decayEnabled ?? false);
+    setDecayStartPoints(challenge.decayStartPoints ?? 40);
     setError("");
 
     if (challenge.type === "quiz") {
@@ -132,6 +140,12 @@ export default function EditChallengeModal({
 
       if (type === "quiz") {
         body.questions = questions;
+      }
+
+      body.deadline = isTimeBound && deadline ? new Date(deadline).toISOString() : null;
+      body.decayEnabled = decayEnabled;
+      if (decayEnabled) {
+        body.decayStartPoints = decayStartPoints;
       }
 
       const res = await fetch(`/api/challenges/${challenge!.id}`, {
@@ -261,20 +275,58 @@ export default function EditChallengeModal({
               </div>
             )}
 
+            {/* Time-bound toggle */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isTimeBound}
+                  onChange={(e) => setIsTimeBound(e.target.checked)}
+                  className="accent-[#C4A265] w-4 h-4"
+                />
+                <span className="text-sm font-medium text-[#8B7355]">Time-bound challenge</span>
+              </label>
+              {isTimeBound && (
+                <input
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className={inputClass}
+                  required
+                />
+              )}
+            </div>
+
+            {/* Decay toggle */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={decayEnabled}
+                  onChange={(e) => setDecayEnabled(e.target.checked)}
+                  className="accent-[#C4A265] w-4 h-4"
+                />
+                <span className="text-sm font-medium text-[#8B7355]">Decaying points</span>
+              </label>
+              {decayEnabled && (
+                <div>
+                  <label className={labelClass}>Starting Points (decreases by 1 per second)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={decayStartPoints}
+                    onChange={(e) => setDecayStartPoints(parseInt(e.target.value) || 40)}
+                    className={inputClass}
+                  />
+                </div>
+              )}
+            </div>
+
             {type === "quiz" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-[#8B7355]">
-                    Questions
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addQuestion}
-                    className="text-sm text-[#C4A265] hover:underline cursor-pointer font-semibold"
-                  >
-                    + Add Question
-                  </button>
-                </div>
+                <label className="text-sm font-medium text-[#8B7355]">
+                  Questions
+                </label>
 
                 {questions.map((q, qi) => (
                   <div
@@ -328,6 +380,14 @@ export default function EditChallengeModal({
                     ))}
                   </div>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={addQuestion}
+                  className="text-sm text-[#C4A265] hover:underline cursor-pointer font-semibold"
+                >
+                  + Add Question
+                </button>
               </div>
             )}
 

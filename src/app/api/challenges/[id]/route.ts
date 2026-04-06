@@ -57,6 +57,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
         ...(body.badgeName !== undefined && { badgeName: body.badgeName || null }),
         ...(body.anchorSession && { anchorSession: body.anchorSession }),
         ...(body.streakRequired !== undefined && { streakRequired: body.streakRequired }),
+        ...(body.deadline !== undefined && { deadline: body.deadline ? new Date(body.deadline) : null }),
+        ...(body.decayEnabled !== undefined && { decayEnabled: body.decayEnabled }),
+        ...(body.decayStartPoints !== undefined && { decayStartPoints: body.decayStartPoints }),
       })
       .where(eq(challenges.id, challengeId))
       .returning();

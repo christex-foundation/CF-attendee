@@ -15,6 +15,10 @@ interface SideQuestPanelProps {
     badgeEmoji: string | null;
     badgeName: string | null;
     streakRequired: number | null;
+    deadline: string | null;
+    decayEnabled: boolean;
+    decayStartPoints: number;
+    createdAt: string;
   };
   completed: boolean;
   currentStreak: number;
@@ -47,6 +51,7 @@ export default function SideQuestPanel({
   const [taskText, setTaskText] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentDecayPoints, setCurrentDecayPoints] = useState(0);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -70,6 +75,19 @@ export default function SideQuestPanel({
     setTaskText("");
     setSubmitted(false);
   }, [open, challenge.id, challenge.type, studentSlug, completed]);
+
+  useEffect(() => {
+    if (!challenge.decayEnabled) return;
+    function calculate() {
+      const elapsed = Math.floor(
+        (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
+      );
+      setCurrentDecayPoints(Math.max(0, challenge.decayStartPoints - elapsed));
+    }
+    calculate();
+    const interval = setInterval(calculate, 1000);
+    return () => clearInterval(interval);
+  }, [challenge.decayEnabled, challenge.decayStartPoints, challenge.createdAt]);
 
   if (!open) return null;
 
@@ -138,7 +156,10 @@ export default function SideQuestPanel({
                 {badge.label}
               </span>
               <span className="text-xs text-gray-500 font-medium">
-                +{challenge.pointsReward} points
+                +{challenge.decayEnabled ? currentDecayPoints : challenge.pointsReward} points
+                {challenge.decayEnabled && (
+                  <span className="text-red-400 ml-1">(decaying)</span>
+                )}
               </span>
               {challenge.badgeName && (
                 <span className="text-xs text-gray-500">
@@ -149,7 +170,15 @@ export default function SideQuestPanel({
           </div>
         </div>
 
-        <p className="text-sm text-gray-600 mb-5">{challenge.description}</p>
+        <p className="text-sm text-gray-600 mb-3">{challenge.description}</p>
+
+        {challenge.deadline && !completed && (
+          <p className="text-xs text-red-500 font-medium mb-5">
+            Deadline: {new Date(challenge.deadline).toLocaleString()}
+          </p>
+        )}
+
+        {!challenge.deadline && <div className="mb-2" />}
 
         {/* Completed state */}
         {completed && (

@@ -33,6 +33,9 @@ export async function POST(request: NextRequest) {
       anchorSession,
       streakRequired,
       questions,
+      deadline,
+      decayEnabled,
+      decayStartPoints,
     } = body;
 
     if (!title || !description || !type || !anchorSession) {
@@ -68,6 +71,9 @@ export async function POST(request: NextRequest) {
         badgeName: badgeName || null,
         anchorSession,
         streakRequired: type === "streak" ? streakRequired : null,
+        deadline: deadline ? new Date(deadline) : null,
+        decayEnabled: decayEnabled ?? false,
+        decayStartPoints: decayEnabled ? (decayStartPoints ?? 40) : 40,
       })
       .returning();
 

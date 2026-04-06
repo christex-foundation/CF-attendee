@@ -79,6 +79,9 @@ export const challenges = pgTable("challenges", {
   badgeName: varchar("badge_name", { length: 100 }),
   anchorSession: integer("anchor_session").notNull(),
   streakRequired: integer("streak_required"),
+  deadline: timestamp("deadline"),
+  decayEnabled: boolean("decay_enabled").notNull().default(false),
+  decayStartPoints: integer("decay_start_points").notNull().default(40),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -153,6 +156,7 @@ export const taskSubmissions = pgTable("task_submissions", {
   submissionText: text("submission_text").notNull(),
   status: submissionStatusEnum("status").notNull().default("pending"),
   adminNotes: text("admin_notes"),
+  pointsSnapshot: integer("points_snapshot"),
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
   reviewedAt: timestamp("reviewed_at"),
 });

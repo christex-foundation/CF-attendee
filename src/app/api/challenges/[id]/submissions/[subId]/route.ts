@@ -51,13 +51,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
         .limit(1);
 
       if (challenge) {
+        const pts = updated.pointsSnapshot ?? challenge.pointsReward;
         await db
           .insert(studentChallengeProgress)
           .values({
             studentId: updated.studentId,
             challengeId: updated.challengeId,
             completed: true,
-            pointsEarned: challenge.pointsReward,
+            pointsEarned: pts,
             badgeEarned: !!challenge.badgeName,
             completedAt: sql`now()`,
           })
@@ -68,7 +69,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
             ],
             set: {
               completed: sql`true`,
-              pointsEarned: sql`${challenge.pointsReward}`,
+              pointsEarned: sql`${pts}`,
               badgeEarned: sql`${!!challenge.badgeName}`,
               completedAt: sql`now()`,
             },

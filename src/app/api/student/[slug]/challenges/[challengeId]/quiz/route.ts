@@ -70,6 +70,26 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    // Prevent re-attempts after completion
+    const [existingProgress] = await db
+      .select()
+      .from(studentChallengeProgress)
+      .where(
+        and(
+          eq(studentChallengeProgress.studentId, student.id),
+          eq(studentChallengeProgress.challengeId, cid),
+          eq(studentChallengeProgress.completed, true)
+        )
+      )
+      .limit(1);
+
+    if (existingProgress) {
+      return NextResponse.json(
+        { error: "Challenge already completed" },
+        { status: 409 }
+      );
+    }
+
     const [challenge] = await db
       .select()
       .from(challenges)
@@ -80,6 +100,13 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json(
         { error: "Quiz challenge not found" },
         { status: 404 }
+      );
+    }
+
+    if (challenge.deadline && new Date(challenge.deadline) < new Date()) {
+      return NextResponse.json(
+        { error: "Challenge deadline has passed" },
+        { status: 403 }
       );
     }
 
@@ -118,13 +145,21 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // If passed, update progress
     if (passed) {
+      let earnedPoints = challenge.pointsReward;
+      if (challenge.decayEnabled) {
+        const elapsed = Math.floor(
+          (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
+        );
+        earnedPoints = Math.max(0, challenge.decayStartPoints - elapsed);
+      }
+
       await db
         .insert(studentChallengeProgress)
         .values({
           studentId: student.id,
           challengeId: cid,
           completed: true,
-          pointsEarned: challenge.pointsReward,
+          pointsEarned: earnedPoints,
           badgeEarned: !!challenge.badgeName,
           completedAt: sql`now()`,
         })
@@ -135,7 +170,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           ],
           set: {
             completed: sql`true`,
-            pointsEarned: sql`${challenge.pointsReward}`,
+            pointsEarned: sql`${earnedPoints}`,
             badgeEarned: sql`${!!challenge.badgeName}`,
             completedAt: sql`now()`,
           },
