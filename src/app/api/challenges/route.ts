@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       deadline,
       decayEnabled,
       decayStartPoints,
+      decayPointsPerInterval,
     } = body;
 
     if (!title || !description || !type || !anchorSession) {
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
         deadline: deadline ? new Date(deadline) : null,
         decayEnabled: decayEnabled ?? false,
         decayStartPoints: decayEnabled ? (decayStartPoints ?? 40) : 40,
+        decayPointsPerInterval: decayEnabled ? (decayPointsPerInterval ?? 1) : 1,
       })
       .returning();
 

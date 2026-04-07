@@ -60,6 +60,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         ...(body.deadline !== undefined && { deadline: body.deadline ? new Date(body.deadline) : null }),
         ...(body.decayEnabled !== undefined && { decayEnabled: body.decayEnabled }),
         ...(body.decayStartPoints !== undefined && { decayStartPoints: body.decayStartPoints }),
+        ...(body.decayPointsPerInterval !== undefined && { decayPointsPerInterval: body.decayPointsPerInterval }),
       })
       .where(eq(challenges.id, challengeId))
       .returning();

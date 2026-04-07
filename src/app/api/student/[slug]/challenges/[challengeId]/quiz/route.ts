@@ -147,10 +147,12 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (passed) {
       let earnedPoints = challenge.pointsReward;
       if (challenge.decayEnabled) {
-        const elapsed = Math.floor(
+        const elapsedSec = Math.floor(
           (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
         );
-        earnedPoints = Math.max(0, challenge.decayStartPoints - elapsed);
+        const intervals = Math.floor(elapsedSec / 600); // 10-minute windows
+        const lost = intervals * challenge.decayPointsPerInterval;
+        earnedPoints = Math.max(0, challenge.decayStartPoints - lost);
       }
 
       await db

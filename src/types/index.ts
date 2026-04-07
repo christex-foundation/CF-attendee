@@ -34,6 +34,7 @@ export interface Challenge {
   deadline: string | null;
   decayEnabled: boolean;
   decayStartPoints: number;
+  decayPointsPerInterval: number;
   createdAt: string;
 }
 

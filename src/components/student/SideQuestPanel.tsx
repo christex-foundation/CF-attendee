@@ -18,6 +18,7 @@ interface SideQuestPanelProps {
     deadline: string | null;
     decayEnabled: boolean;
     decayStartPoints: number;
+    decayPointsPerInterval: number;
     createdAt: string;
   };
   completed: boolean;
@@ -79,15 +80,17 @@ export default function SideQuestPanel({
   useEffect(() => {
     if (!challenge.decayEnabled) return;
     function calculate() {
-      const elapsed = Math.floor(
+      const elapsedSec = Math.floor(
         (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
       );
-      setCurrentDecayPoints(Math.max(0, challenge.decayStartPoints - elapsed));
+      const intervals = Math.floor(elapsedSec / 600); // 10-minute windows
+      const lost = intervals * challenge.decayPointsPerInterval;
+      setCurrentDecayPoints(Math.max(0, challenge.decayStartPoints - lost));
     }
     calculate();
     const interval = setInterval(calculate, 1000);
     return () => clearInterval(interval);
-  }, [challenge.decayEnabled, challenge.decayStartPoints, challenge.createdAt]);
+  }, [challenge.decayEnabled, challenge.decayStartPoints, challenge.decayPointsPerInterval, challenge.createdAt]);
 
   if (!open) return null;
 

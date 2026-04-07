@@ -29,6 +29,13 @@
       "when": 1775487356124,
       "tag": "0003_broken_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775559592652,
+      "tag": "0004_sad_sharon_ventura",
+      "breakpoints": true
     }
   ]
 }

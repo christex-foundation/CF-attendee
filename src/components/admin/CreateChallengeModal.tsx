@@ -35,6 +35,7 @@ export default function CreateChallengeModal({
   const [deadline, setDeadline] = useState("");
   const [decayEnabled, setDecayEnabled] = useState(false);
   const [decayStartPoints, setDecayStartPoints] = useState(40);
+  const [decayPointsPerInterval, setDecayPointsPerInterval] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -109,6 +110,7 @@ export default function CreateChallengeModal({
       body.decayEnabled = decayEnabled;
       if (decayEnabled) {
         body.decayStartPoints = decayStartPoints;
+        body.decayPointsPerInterval = decayPointsPerInterval;
       }
 
       const res = await fetch("/api/challenges", {
@@ -138,6 +140,7 @@ export default function CreateChallengeModal({
       setDeadline("");
       setDecayEnabled(false);
       setDecayStartPoints(40);
+      setDecayPointsPerInterval(1);
       onCreated();
       onClose();
     } catch {
@@ -290,15 +293,27 @@ export default function CreateChallengeModal({
               <span className="text-sm font-medium text-[#8B7355]">Decaying points</span>
             </label>
             {decayEnabled && (
-              <div>
-                <label className={labelClass}>Starting Points (decreases by 1 per second)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={decayStartPoints}
-                  onChange={(e) => setDecayStartPoints(parseInt(e.target.value) || 40)}
-                  className={inputClass}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Starting Points</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={decayStartPoints}
+                    onChange={(e) => setDecayStartPoints(parseInt(e.target.value) || 40)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Points lost / 10 min</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={decayPointsPerInterval}
+                    onChange={(e) => setDecayPointsPerInterval(parseInt(e.target.value) || 1)}
+                    className={inputClass}
+                  />
+                </div>
               </div>
             )}
           </div>

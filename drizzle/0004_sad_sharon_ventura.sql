@@ -1,0 +1,1 @@
+ALTER TABLE "challenges" ADD COLUMN "decay_interval_seconds" integer DEFAULT 10 NOT NULL;
