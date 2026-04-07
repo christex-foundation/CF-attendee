@@ -107,6 +107,10 @@ export default async function StudentPage({ params }: Props) {
       badgeName: c.badgeName,
       anchorSession: c.anchorSession,
       streakRequired: c.streakRequired,
+      deadline: c.deadline?.toISOString() ?? null,
+      decayEnabled: c.decayEnabled,
+      decayStartPoints: c.decayStartPoints,
+      decayPointsPerInterval: c.decayPointsPerInterval,
       createdAt: c.createdAt.toISOString(),
     },
     progress: progressMap.get(c.id)
