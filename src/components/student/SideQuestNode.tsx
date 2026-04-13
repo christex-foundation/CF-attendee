@@ -3,7 +3,7 @@
 interface SideQuestNodeProps {
   cx: number;
   cy: number;
-  type: "quiz" | "task" | "streak";
+  type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction";
   completed: boolean;
   expired?: boolean;
   badgeEmoji: string | null;
@@ -36,6 +36,62 @@ const typeConfigs = {
     gradDark: "#B45309",
     stroke: "#92400E",
     label: "S",
+  },
+  poll: {
+    outer: "#FB7185",
+    fill: "#E11D48",
+    gradLight: "#FDA4AF",
+    gradDark: "#BE123C",
+    stroke: "#9F1239",
+    label: "P",
+  },
+  speedrun: {
+    outer: "#FB923C",
+    fill: "#EA580C",
+    gradLight: "#FDBA74",
+    gradDark: "#C2410C",
+    stroke: "#9A3412",
+    label: "R",
+  },
+  checkin: {
+    outer: "#38BDF8",
+    fill: "#0284C7",
+    gradLight: "#7DD3FC",
+    gradDark: "#0369A1",
+    stroke: "#075985",
+    label: "C",
+  },
+  wager: {
+    outer: "#F472B6",
+    fill: "#DB2777",
+    gradLight: "#F9A8D4",
+    gradDark: "#BE185D",
+    stroke: "#9D174D",
+    label: "W",
+  },
+  bounty: {
+    outer: "#A3E635",
+    fill: "#65A30D",
+    gradLight: "#D9F99D",
+    gradDark: "#4D7C0F",
+    stroke: "#3F6212",
+    label: "B",
+  },
+  chain: {
+    outer: "#C084FC",
+    fill: "#9333EA",
+    gradLight: "#D8B4FE",
+    gradDark: "#7E22CE",
+    stroke: "#6B21A8",
+    label: "⛓",
+  },
+  auction: {
+    outer: "#FCD34D",
+    fill: "#CA8A04",
+    gradLight: "#FEF08A",
+    gradDark: "#A16207",
+    stroke: "#854D0E",
+    label: "$",
   },
 };
 

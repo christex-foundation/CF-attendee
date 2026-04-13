@@ -1,5 +1,5 @@
 export type AttendanceStatus = "present" | "absent";
-export type ChallengeType = "quiz" | "task" | "streak";
+export type ChallengeType = "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction";
 export type ChallengeStatus = "draft" | "active" | "archived";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 
@@ -31,6 +31,13 @@ export interface Challenge {
   badgeName: string | null;
   anchorSession: number;
   streakRequired: number | null;
+  speedSlots: number | null;
+  checkinWindowSeconds: number | null;
+  checkinActivatedAt: string | null;
+  wagerMin: number | null;
+  wagerMax: number | null;
+  chainRequired: number | null;
+  auctionMinBid: number | null;
   deadline: string | null;
   decayEnabled: boolean;
   decayStartPoints: number;
@@ -65,6 +72,7 @@ export interface TaskSubmission {
   submissionText: string;
   pointsSnapshot: number;
   status: SubmissionStatus;
+  grade: number | null;
   adminNotes: string | null;
   submittedAt: string;
   reviewedAt: string | null;
@@ -73,7 +81,15 @@ export interface TaskSubmission {
 export interface SideQuestNode {
   challenge: Challenge;
   progress: StudentChallengeProgress | null;
+  taskSubmission: { status: SubmissionStatus; grade: number | null } | null;
   anchorSession: number;
+  slotsRemaining?: number;
+  checkinWindowOpen?: boolean;
+  checkinWindowEndsAt?: string;
+  chainProgress?: number;
+  highestBid?: number;
+  highestBidder?: string;
+  studentBid?: number;
 }
 
 export interface AttendanceRecordWithStudent extends AttendanceRecord {

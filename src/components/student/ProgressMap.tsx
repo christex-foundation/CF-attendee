@@ -386,7 +386,8 @@ export default function ProgressMap({
               if (!quests) return null;
 
               return quests.map((sq, qi) => {
-                const side = node.cx > centerX ? -1 : 1;
+                // Deterministic pseudo-random side based on challenge id
+                const side = sq.challenge.id % 2 === 0 ? 1 : -1;
                 const rawSqX = node.cx + side * (110 + qi * 50);
                 const sqX = Math.max(40, Math.min(mapWidth - 40, rawSqX));
                 const sqY = node.cy - 30;
@@ -512,7 +513,15 @@ export default function ProgressMap({
           challenge={activeQuest.challenge}
           completed={activeQuest.progress?.completed ?? false}
           pointsEarned={activeQuest.progress?.pointsEarned ?? 0}
+          taskSubmission={activeQuest.taskSubmission ?? null}
           currentStreak={currentStreak}
+          slotsRemaining={activeQuest.slotsRemaining}
+          checkinWindowOpen={activeQuest.checkinWindowOpen}
+          checkinWindowEndsAt={activeQuest.checkinWindowEndsAt}
+          chainProgress={activeQuest.chainProgress}
+          highestBid={activeQuest.highestBid}
+          highestBidder={activeQuest.highestBidder}
+          studentBid={activeQuest.studentBid}
         />
       )}
 

@@ -5,7 +5,9 @@ import {
   studentChallengeProgress,
   challenges,
 } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, ne, sql } from "drizzle-orm";
+
+const VALID_GRADES = [100, 80, 70, 60, 50, 0];
 
 interface Params {
   params: Promise<{ id: string; subId: string }>;
@@ -16,11 +18,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const { subId } = await params;
     const submissionId = parseInt(subId, 10);
     const body = await request.json();
-    const { status, adminNotes } = body;
+    const { grade, adminNotes } = body;
 
-    if (!status || !["approved", "rejected"].includes(status)) {
+    if (typeof grade !== "number" || !VALID_GRADES.includes(grade)) {
       return NextResponse.json(
-        { error: "status must be 'approved' or 'rejected'" },
+        { error: "grade must be one of: 100, 80, 70, 60, 50, 0" },
         { status: 400 }
       );
     }
@@ -46,10 +48,13 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
+    const status = grade >= 50 ? "approved" : "rejected";
+
     const [updated] = await db
       .update(taskSubmissions)
       .set({
         status,
+        grade,
         adminNotes: adminNotes || null,
         reviewedAt: sql`now()`,
       })
@@ -63,38 +68,70 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
-    // If approved, update student challenge progress
-    if (status === "approved") {
-      const [challenge] = await db
-        .select()
-        .from(challenges)
-        .where(eq(challenges.id, updated.challengeId))
-        .limit(1);
+    // Update student challenge progress with graded points
+    const [challenge] = await db
+      .select()
+      .from(challenges)
+      .where(eq(challenges.id, updated.challengeId))
+      .limit(1);
 
-      if (challenge) {
-        const pts = updated.pointsSnapshot ?? challenge.pointsReward;
-        await db
-          .insert(studentChallengeProgress)
-          .values({
-            studentId: updated.studentId,
-            challengeId: updated.challengeId,
-            completed: true,
-            pointsEarned: pts,
-            badgeEarned: !!challenge.badgeName,
+    if (challenge) {
+      const basePoints = updated.pointsSnapshot ?? challenge.pointsReward;
+      const pts = grade >= 50 ? Math.round((grade / 100) * basePoints) : 0;
+      const badgeEarned = grade >= 50 && !!challenge.badgeName;
+
+      await db
+        .insert(studentChallengeProgress)
+        .values({
+          studentId: updated.studentId,
+          challengeId: updated.challengeId,
+          completed: true,
+          pointsEarned: pts,
+          badgeEarned,
+          completedAt: sql`now()`,
+        })
+        .onConflictDoUpdate({
+          target: [
+            studentChallengeProgress.studentId,
+            studentChallengeProgress.challengeId,
+          ],
+          set: {
+            completed: sql`true`,
+            pointsEarned: sql`${pts}`,
+            badgeEarned: sql`${badgeEarned}`,
             completedAt: sql`now()`,
-          })
-          .onConflictDoUpdate({
-            target: [
-              studentChallengeProgress.studentId,
-              studentChallengeProgress.challengeId,
-            ],
-            set: {
-              completed: sql`true`,
-              pointsEarned: sql`${pts}`,
-              badgeEarned: sql`${!!challenge.badgeName}`,
-              completedAt: sql`now()`,
-            },
-          });
+          },
+        });
+    }
+
+    // For bounties: if approved, auto-reject all other pending submissions
+    if (challenge && challenge.type === "bounty" && status === "approved") {
+      const pendingOthers = await db
+        .select()
+        .from(taskSubmissions)
+        .where(
+          and(
+            eq(taskSubmissions.challengeId, updated.challengeId),
+            eq(taskSubmissions.status, "pending"),
+            ne(taskSubmissions.id, submissionId)
+          )
+        );
+
+      for (const other of pendingOthers) {
+        await db
+          .update(taskSubmissions)
+          .set({ status: "rejected", grade: 0, reviewedAt: sql`now()` })
+          .where(eq(taskSubmissions.id, other.id));
+
+        await db
+          .update(studentChallengeProgress)
+          .set({ completed: sql`true`, pointsEarned: sql`0` })
+          .where(
+            and(
+              eq(studentChallengeProgress.studentId, other.studentId),
+              eq(studentChallengeProgress.challengeId, updated.challengeId)
+            )
+          );
       }
     }
 

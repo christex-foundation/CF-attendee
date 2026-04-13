@@ -26,12 +26,19 @@ export default function EditChallengeModal({
 }: EditChallengeModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"quiz" | "task" | "streak">("quiz");
+  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction">("quiz");
   const [pointsReward, setPointsReward] = useState(10);
   const [badgeEmoji, setBadgeEmoji] = useState("");
   const [badgeName, setBadgeName] = useState("");
   const [anchorSession, setAnchorSession] = useState(1);
   const [streakRequired, setStreakRequired] = useState(3);
+  const [speedSlots, setSpeedSlots] = useState(5);
+  const [checkinWindowMinutes, setCheckinWindowMinutes] = useState(5);
+  const [checkinScheduledAt, setCheckinScheduledAt] = useState("");
+  const [wagerMin, setWagerMin] = useState(5);
+  const [wagerMax, setWagerMax] = useState(50);
+  const [chainRequired, setChainRequired] = useState(5);
+  const [auctionMinBid, setAuctionMinBid] = useState(10);
   const [questions, setQuestions] = useState<QuestionInput[]>([]);
   const [isTimeBound, setIsTimeBound] = useState(false);
   const [deadline, setDeadline] = useState("");
@@ -54,6 +61,13 @@ export default function EditChallengeModal({
     setBadgeName(challenge.badgeName || "");
     setAnchorSession(challenge.anchorSession);
     setStreakRequired(challenge.streakRequired || 3);
+    setSpeedSlots(challenge.speedSlots || 5);
+    setCheckinWindowMinutes(challenge.checkinWindowSeconds ? Math.round(challenge.checkinWindowSeconds / 60) : 5);
+    setCheckinScheduledAt(challenge.checkinActivatedAt ? new Date(challenge.checkinActivatedAt).toISOString().slice(0, 16) : "");
+    setWagerMin(challenge.wagerMin || 5);
+    setWagerMax(challenge.wagerMax || 50);
+    setChainRequired(challenge.chainRequired || 5);
+    setAuctionMinBid(challenge.auctionMinBid || 10);
     setIsTimeBound(!!challenge.deadline);
     setDeadline(challenge.deadline ? new Date(challenge.deadline).toISOString().slice(0, 16) : "");
     setDecayEnabled(challenge.decayEnabled ?? false);
@@ -66,7 +80,7 @@ export default function EditChallengeModal({
     }
     setError("");
 
-    if (challenge.type === "quiz") {
+    if (challenge.type === "quiz" || challenge.type === "poll" || challenge.type === "wager") {
       setFetchingQuestions(true);
       fetch(`/api/challenges/${challenge.id}`)
         .then((res) => res.json())
@@ -148,8 +162,34 @@ export default function EditChallengeModal({
         body.streakRequired = streakRequired;
       }
 
-      if (type === "quiz") {
+      if (type === "speedrun") {
+        body.speedSlots = speedSlots;
+      }
+
+      if (type === "checkin") {
+        body.checkinWindowSeconds = checkinWindowMinutes * 60;
+        body.checkinActivatedAt = checkinScheduledAt ? new Date(checkinScheduledAt).toISOString() : null;
+      }
+
+      if (type === "quiz" || type === "wager") {
         body.questions = questions;
+      }
+
+      if (type === "poll") {
+        body.questions = questions.map((q) => ({ ...q, correctIndex: -1 }));
+      }
+
+      if (type === "wager") {
+        body.wagerMin = wagerMin;
+        body.wagerMax = wagerMax;
+      }
+
+      if (type === "chain") {
+        body.chainRequired = chainRequired;
+      }
+
+      if (type === "auction") {
+        body.auctionMinBid = auctionMinBid;
       }
 
       body.deadline = isTimeBound && deadline ? new Date(deadline).toISOString() : null;
@@ -204,7 +244,7 @@ export default function EditChallengeModal({
             <div>
               <label className={labelClass}>Type</label>
               <div className={`${inputClass} bg-[#F5F0EB] text-[#8B7355] cursor-not-allowed`}>
-                {type === "quiz" ? "Quiz" : type === "task" ? "Task" : "Streak"}
+                {{ quiz: "Quiz", task: "Task", streak: "Streak", poll: "Poll", speedrun: "Speed Run", checkin: "Check-in", wager: "Wager", bounty: "Bounty", chain: "Chain", auction: "Auction" }[type]}
               </div>
             </div>
 
@@ -284,6 +324,50 @@ export default function EditChallengeModal({
                   onChange={(e) => setStreakRequired(parseInt(e.target.value) || 1)}
                   className={inputClass}
                 />
+              </div>
+            )}
+
+            {type === "speedrun" && (
+              <div>
+                <label className={labelClass}>
+                  Winner Slots (how many students earn full points)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={speedSlots}
+                  onChange={(e) => setSpeedSlots(parseInt(e.target.value) || 1)}
+                  className={inputClass}
+                />
+              </div>
+            )}
+
+            {type === "checkin" && (
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>
+                    Scheduled Date &amp; Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={checkinScheduledAt}
+                    onChange={(e) => setCheckinScheduledAt(e.target.value)}
+                    required
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>
+                    Window Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={checkinWindowMinutes}
+                    onChange={(e) => setCheckinWindowMinutes(parseInt(e.target.value) || 1)}
+                    className={inputClass}
+                  />
+                </div>
               </div>
             )}
 
@@ -372,7 +456,7 @@ export default function EditChallengeModal({
               )}
             </div>
 
-            {type === "quiz" && (
+            {(type === "quiz" || type === "poll" || type === "wager") && (
               <div className="space-y-4">
                 <label className="text-sm font-medium text-[#8B7355]">
                   Questions
@@ -411,13 +495,15 @@ export default function EditChallengeModal({
 
                     {q.options.map((opt, oi) => (
                       <div key={oi} className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name={`edit-correct-${qi}`}
-                          checked={q.correctIndex === oi}
-                          onChange={() => updateQuestion(qi, "correctIndex", oi)}
-                          className="accent-green-500"
-                        />
+                        {(type === "quiz" || type === "wager") && (
+                          <input
+                            type="radio"
+                            name={`edit-correct-${qi}`}
+                            checked={q.correctIndex === oi}
+                            onChange={() => updateQuestion(qi, "correctIndex", oi)}
+                            className="accent-green-500"
+                          />
+                        )}
                         <input
                           type="text"
                           value={opt}

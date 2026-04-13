@@ -20,7 +20,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
         challengeId: taskSubmissions.challengeId,
         submissionText: taskSubmissions.submissionText,
         status: taskSubmissions.status,
+        grade: taskSubmissions.grade,
         adminNotes: taskSubmissions.adminNotes,
+        pointsSnapshot: taskSubmissions.pointsSnapshot,
         submittedAt: taskSubmissions.submittedAt,
         reviewedAt: taskSubmissions.reviewedAt,
       })

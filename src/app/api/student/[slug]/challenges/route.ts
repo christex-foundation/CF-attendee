@@ -5,8 +5,10 @@ import {
   challenges,
   studentChallengeProgress,
   attendance,
+  taskSubmissions,
+  auctionBids,
 } from "@/lib/db/schema";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, desc, sql } from "drizzle-orm";
 
 interface Params {
   params: Promise<{ slug: string }>;
@@ -100,11 +102,107 @@ export async function GET(_request: NextRequest, { params }: Params) {
       }
     }
 
-    const sideQuests = activeChallenges.map((c) => ({
-      challenge: c,
-      progress: progressMap.get(c.id) || null,
-      anchorSession: c.anchorSession,
-    }));
+    // Fetch task submission statuses for this student
+    const taskSubs = await db
+      .select({
+        challengeId: taskSubmissions.challengeId,
+        status: taskSubmissions.status,
+        grade: taskSubmissions.grade,
+      })
+      .from(taskSubmissions)
+      .where(eq(taskSubmissions.studentId, student.id));
+
+    const taskSubMap = new Map(
+      taskSubs.map((s) => [s.challengeId, { status: s.status, grade: s.grade }])
+    );
+
+    // Compute speedrun slots remaining
+    const speedrunIds = activeChallenges.filter((c) => c.type === "speedrun").map((c) => c.id);
+    const slotsMap = new Map<number, number>();
+    if (speedrunIds.length > 0) {
+      for (const sid of speedrunIds) {
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(studentChallengeProgress)
+          .where(
+            and(
+              eq(studentChallengeProgress.challengeId, sid),
+              eq(studentChallengeProgress.completed, true),
+              sql`${studentChallengeProgress.pointsEarned} > 0`
+            )
+          );
+        const challenge = activeChallenges.find((c) => c.id === sid)!;
+        const slots = challenge.speedSlots ?? 1;
+        slotsMap.set(sid, Math.max(0, slots - Number(countResult?.count ?? 0)));
+      }
+    }
+
+    // Compute chain progress
+    const chainMap = new Map<number, number>();
+    for (const c of activeChallenges) {
+      if (c.type === "chain") {
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(studentChallengeProgress)
+          .where(eq(studentChallengeProgress.challengeId, c.id));
+        chainMap.set(c.id, Number(countResult?.count ?? 0));
+      }
+    }
+
+    // Compute auction highest bids
+    const auctionMap = new Map<number, { highestBid: number; highestBidder: string; studentBid: number }>();
+    for (const c of activeChallenges) {
+      if (c.type === "auction") {
+        const [highest] = await db
+          .select({ amount: auctionBids.amount, studentId: auctionBids.studentId })
+          .from(auctionBids)
+          .where(eq(auctionBids.challengeId, c.id))
+          .orderBy(desc(auctionBids.amount))
+          .limit(1);
+
+        let bidderName = "";
+        if (highest) {
+          const [bidder] = await db.select({ name: students.name }).from(students).where(eq(students.id, highest.studentId)).limit(1);
+          bidderName = bidder?.name ?? "";
+        }
+
+        const [myBid] = await db
+          .select({ amount: auctionBids.amount })
+          .from(auctionBids)
+          .where(and(eq(auctionBids.challengeId, c.id), eq(auctionBids.studentId, student.id)))
+          .orderBy(desc(auctionBids.amount))
+          .limit(1);
+
+        auctionMap.set(c.id, {
+          highestBid: highest?.amount ?? 0,
+          highestBidder: bidderName,
+          studentBid: myBid?.amount ?? 0,
+        });
+      }
+    }
+
+    const sideQuests = activeChallenges.map((c) => {
+      let checkinWindowOpen = false;
+      let checkinWindowEndsAt: string | undefined;
+      if (c.type === "checkin" && c.checkinActivatedAt) {
+        const windowEnd = new Date(
+          c.checkinActivatedAt.getTime() + (c.checkinWindowSeconds ?? 300) * 1000
+        );
+        checkinWindowOpen = new Date() >= c.checkinActivatedAt && new Date() < windowEnd;
+        checkinWindowEndsAt = windowEnd.toISOString();
+      }
+
+      return {
+        challenge: c,
+        progress: progressMap.get(c.id) || null,
+        taskSubmission: (c.type === "task" || c.type === "bounty") ? (taskSubMap.get(c.id) || null) : null,
+        anchorSession: c.anchorSession,
+        ...(c.type === "speedrun" && { slotsRemaining: slotsMap.get(c.id) ?? 0 }),
+        ...(c.type === "checkin" && { checkinWindowOpen, checkinWindowEndsAt }),
+        ...(c.type === "chain" && { chainProgress: chainMap.get(c.id) ?? 0 }),
+        ...(c.type === "auction" && auctionMap.get(c.id)),
+      };
+    });
 
     return NextResponse.json({
       sideQuests,

@@ -7,7 +7,7 @@ import type { Challenge } from "@/types";
 interface ChallengesListProps {
   challenges: Challenge[];
   onRefresh: () => void;
-  onViewSubmissions: (challengeId: number, challengeType: "quiz" | "task" | "streak") => void;
+  onViewSubmissions: (challengeId: number, challengeType: Challenge["type"]) => void;
   onCreateChallenge: () => void;
   onEditChallenge: (challenge: Challenge) => void;
 }
@@ -16,6 +16,13 @@ const typeBadge = {
   quiz: { bg: "bg-purple-50 text-purple-700 border-purple-200", label: "Quiz" },
   task: { bg: "bg-teal-50 text-teal-700 border-teal-200", label: "Task" },
   streak: { bg: "bg-amber-50 text-amber-700 border-amber-200", label: "Streak" },
+  poll: { bg: "bg-rose-50 text-rose-700 border-rose-200", label: "Poll" },
+  speedrun: { bg: "bg-orange-50 text-orange-700 border-orange-200", label: "Speed Run" },
+  checkin: { bg: "bg-sky-50 text-sky-700 border-sky-200", label: "Check-in" },
+  wager: { bg: "bg-pink-50 text-pink-700 border-pink-200", label: "Wager" },
+  bounty: { bg: "bg-lime-50 text-lime-700 border-lime-200", label: "Bounty" },
+  chain: { bg: "bg-violet-50 text-violet-700 border-violet-200", label: "Chain" },
+  auction: { bg: "bg-yellow-50 text-yellow-700 border-yellow-200", label: "Auction" },
 };
 
 const statusBadge = {
@@ -33,6 +40,17 @@ export default function ChallengesList({
 }: ChallengesListProps) {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Challenge | null>(null);
+  const [settlingAuction, setSettlingAuction] = useState<number | null>(null);
+
+  async function settleAuction(challengeId: number) {
+    setSettlingAuction(challengeId);
+    try {
+      await fetch(`/api/challenges/${challengeId}/settle-auction`, { method: "POST" });
+      onRefresh();
+    } finally {
+      setSettlingAuction(null);
+    }
+  }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -73,7 +91,7 @@ export default function ChallengesList({
 
   return (
     <>
-    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+    <div className="space-y-3">
       {challenges.map((c) => (
         <div
           key={c.id}
@@ -107,6 +125,24 @@ export default function ChallengesList({
             {c.type === "streak" && c.streakRequired && (
               <span>{c.streakRequired} streak required</span>
             )}
+            {c.type === "speedrun" && c.speedSlots && (
+              <span>{c.speedSlots} winner slots</span>
+            )}
+            {c.type === "checkin" && c.checkinWindowSeconds && (
+              <span>{Math.round(c.checkinWindowSeconds / 60)}min window</span>
+            )}
+            {c.type === "poll" && (
+              <span className="text-rose-500">No points</span>
+            )}
+            {c.type === "wager" && c.wagerMin != null && (
+              <span>Wager: {c.wagerMin}–{c.wagerMax} pts</span>
+            )}
+            {c.type === "chain" && c.chainRequired && (
+              <span>{c.chainRequired} links needed</span>
+            )}
+            {c.type === "auction" && c.auctionMinBid && (
+              <span>Min bid: {c.auctionMinBid} pts</span>
+            )}
             {c.badgeName && <span>Badge: {c.badgeName}</span>}
           </div>
 
@@ -126,13 +162,40 @@ export default function ChallengesList({
               {c.status === "active" ? "Archive" : "Activate"}
             </button>
 
-            {(c.type === "task" || c.type === "quiz") && (
+            {(c.type === "task" || c.type === "quiz" || c.type === "bounty") && (
               <button
                 onClick={() => onViewSubmissions(c.id, c.type)}
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F5E6D3] text-[#8B7355] hover:bg-[#EADCC6] transition cursor-pointer"
               >
                 {c.type === "quiz" ? "View Attempts" : "View Submissions"}
               </button>
+            )}
+
+            {c.type === "poll" && (
+              <button
+                onClick={() => onViewSubmissions(c.id, c.type)}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition cursor-pointer"
+              >
+                View Results
+              </button>
+            )}
+
+            {c.type === "auction" && c.status === "active" && (
+              <button
+                onClick={() => settleAuction(c.id)}
+                disabled={settlingAuction === c.id}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition cursor-pointer disabled:opacity-50"
+              >
+                {settlingAuction === c.id ? "Settling..." : "Settle Auction"}
+              </button>
+            )}
+
+            {c.type === "checkin" && c.checkinActivatedAt && (
+              <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-sky-50 text-sky-700">
+                {new Date(c.checkinActivatedAt) > new Date()
+                  ? `Scheduled: ${new Date(c.checkinActivatedAt).toLocaleString()}`
+                  : "Window passed"}
+              </span>
             )}
 
             <button

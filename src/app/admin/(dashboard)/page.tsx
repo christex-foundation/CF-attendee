@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const [showAttendance, setShowAttendance] = useState(false);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [submissionsChallengeId, setSubmissionsChallengeId] = useState<number | null>(null);
-  const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | null>(null);
+  const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [pointsStudent, setPointsStudent] = useState<{ id: number; name: string } | null>(null);
   const [editStudent, setEditStudent] = useState<{ id: number; name: string; slug?: string; avatarUrl?: string | null } | null>(null);
@@ -109,7 +109,7 @@ export default function DashboardPage() {
   const loading = tab === "students" ? studentsLoading : tab === "challenges" ? challengesLoading : attendanceLoading;
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* ─── Fetch error banner ─── */}
       {fetchError && (
         <div className="mb-4 flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -211,7 +211,7 @@ export default function DashboardPage() {
 
       {/* ─── Students Tab ─── */}
       {tab === "students" && (
-        <>
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -232,7 +232,7 @@ export default function DashboardPage() {
           ) : (
             <>
               {/* Desktop table */}
-              <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden max-h-[60vh] overflow-y-auto">
+              <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-white z-10">
                     <tr className="border-b border-[#E8E0D8]">
@@ -276,7 +276,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Mobile cards */}
-              <div className="sm:hidden space-y-3 max-h-[60vh] overflow-y-auto">
+              <div className="sm:hidden space-y-3">
                 {students.map((student) => (
                   <div key={student.id} className="bg-white rounded-2xl border border-[#E8E0D8] p-4">
                     <div className="flex items-center gap-3 mb-3">
@@ -305,12 +305,12 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-        </>
+        </div>
       )}
 
       {/* ─── Challenges Tab ─── */}
       {tab === "challenges" && (
-        <>
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -329,12 +329,14 @@ export default function DashboardPage() {
               onEditChallenge={setEditChallenge}
             />
           )}
-        </>
+        </div>
       )}
 
       {/* ─── Attendance Tab ─── */}
       {tab === "attendance" && (
-        <AttendanceTable records={attendanceRecords} loading={attendanceLoading} />
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <AttendanceTable records={attendanceRecords} loading={attendanceLoading} />
+        </div>
       )}
 
       {/* Modals */}

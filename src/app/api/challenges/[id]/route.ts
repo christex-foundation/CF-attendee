@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     }
 
     let questions: typeof quizQuestions.$inferSelect[] = [];
-    if (challenge.type === "quiz") {
+    if (challenge.type === "quiz" || challenge.type === "poll" || challenge.type === "wager") {
       questions = await db
         .select()
         .from(quizQuestions)
@@ -57,6 +57,13 @@ export async function PUT(request: NextRequest, { params }: Params) {
         ...(body.badgeName !== undefined && { badgeName: body.badgeName || null }),
         ...(body.anchorSession && { anchorSession: body.anchorSession }),
         ...(body.streakRequired !== undefined && { streakRequired: body.streakRequired }),
+        ...(body.speedSlots !== undefined && { speedSlots: body.speedSlots }),
+        ...(body.checkinWindowSeconds !== undefined && { checkinWindowSeconds: body.checkinWindowSeconds }),
+        ...(body.checkinActivatedAt !== undefined && { checkinActivatedAt: body.checkinActivatedAt ? new Date(body.checkinActivatedAt) : null }),
+        ...(body.wagerMin !== undefined && { wagerMin: body.wagerMin }),
+        ...(body.wagerMax !== undefined && { wagerMax: body.wagerMax }),
+        ...(body.chainRequired !== undefined && { chainRequired: body.chainRequired }),
+        ...(body.auctionMinBid !== undefined && { auctionMinBid: body.auctionMinBid }),
         ...(body.deadline !== undefined && { deadline: body.deadline ? new Date(body.deadline) : null }),
         ...(body.decayEnabled !== undefined && { decayEnabled: body.decayEnabled }),
         ...(body.decayStartPoints !== undefined && { decayStartPoints: body.decayStartPoints }),
@@ -70,8 +77,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
 
-    // Update quiz questions if provided
-    if (Array.isArray(body.questions) && updated.type === "quiz") {
+    // Update quiz/poll questions if provided
+    if (Array.isArray(body.questions) && (updated.type === "quiz" || updated.type === "poll" || updated.type === "wager")) {
       await db.delete(quizQuestions).where(eq(quizQuestions.challengeId, challengeId));
       if (body.questions.length > 0) {
         const questionValues = body.questions.map(
@@ -79,7 +86,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
             challengeId,
             questionText: q.questionText,
             options: JSON.stringify(q.options),
-            correctIndex: q.correctIndex,
+            correctIndex: updated.type === "poll" ? -1 : q.correctIndex,
             orderIndex: i,
           })
         );

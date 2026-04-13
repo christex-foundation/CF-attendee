@@ -19,6 +19,13 @@ export const challengeTypeEnum = pgEnum("challenge_type", [
   "quiz",
   "task",
   "streak",
+  "poll",
+  "speedrun",
+  "checkin",
+  "wager",
+  "bounty",
+  "chain",
+  "auction",
 ]);
 
 export const challengeStatusEnum = pgEnum("challenge_status", [
@@ -79,6 +86,13 @@ export const challenges = pgTable("challenges", {
   badgeName: varchar("badge_name", { length: 100 }),
   anchorSession: integer("anchor_session").notNull(),
   streakRequired: integer("streak_required"),
+  speedSlots: integer("speed_slots"),
+  checkinWindowSeconds: integer("checkin_window_seconds"),
+  checkinActivatedAt: timestamp("checkin_activated_at"),
+  wagerMin: integer("wager_min"),
+  wagerMax: integer("wager_max"),
+  chainRequired: integer("chain_required"),
+  auctionMinBid: integer("auction_min_bid"),
   deadline: timestamp("deadline"),
   decayEnabled: boolean("decay_enabled").notNull().default(false),
   decayStartPoints: integer("decay_start_points").notNull().default(40),
@@ -157,8 +171,21 @@ export const taskSubmissions = pgTable("task_submissions", {
     .references(() => challenges.id, { onDelete: "cascade" }),
   submissionText: text("submission_text").notNull(),
   status: submissionStatusEnum("status").notNull().default("pending"),
+  grade: integer("grade"),
   adminNotes: text("admin_notes"),
   pointsSnapshot: integer("points_snapshot"),
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
   reviewedAt: timestamp("reviewed_at"),
+});
+
+export const auctionBids = pgTable("auction_bids", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => students.id, { onDelete: "cascade" }),
+  challengeId: integer("challenge_id")
+    .notNull()
+    .references(() => challenges.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -87,8 +87,8 @@ export default function AttendanceTable({ records, loading }: AttendanceTablePro
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden max-h-[60vh]">
-        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
+      <div className="hidden sm:block bg-white rounded-2xl border border-[#E8E0D8] overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-white z-20">
               <tr className="border-b border-[#E8E0D8]">
@@ -188,7 +188,7 @@ export default function AttendanceTable({ records, loading }: AttendanceTablePro
       </div>
 
       {/* Mobile Cards */}
-      <div className="sm:hidden space-y-3 max-h-[60vh] overflow-y-auto">
+      <div className="sm:hidden space-y-3">
         {filteredStudents.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-[#E8E0D8]">
             <p className="text-[#8B7355] text-sm">No students match &ldquo;{search}&rdquo;</p>

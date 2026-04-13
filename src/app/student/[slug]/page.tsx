@@ -5,8 +5,9 @@ import {
   challenges,
   studentChallengeProgress,
   taskSubmissions,
+  auctionBids,
 } from "@/lib/db/schema";
-import { eq, asc, max } from "drizzle-orm";
+import { eq, asc, and, desc, max, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import StudentMapClient from "./client";
 
@@ -94,6 +95,7 @@ export default async function StudentPage({ params }: Props) {
     .from(taskSubmissions)
     .where(eq(taskSubmissions.studentId, student.id));
   const submittedChallengeIds = new Set(taskSubs.map((t) => t.challengeId));
+  const taskSubMap = new Map(taskSubs.map((t) => [t.challengeId, { status: t.status, grade: t.grade }]));
 
   // Calculate streaks (read-only)
   let currentStreak = 0;
@@ -102,6 +104,24 @@ export default async function StudentPage({ params }: Props) {
       currentStreak++;
     } else {
       currentStreak = 0;
+    }
+  }
+
+  // Compute speedrun slots remaining
+  const slotsMap = new Map<number, number>();
+  for (const c of activeChallenges) {
+    if (c.type === "speedrun") {
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(studentChallengeProgress)
+        .where(
+          and(
+            eq(studentChallengeProgress.challengeId, c.id),
+            eq(studentChallengeProgress.completed, true),
+            sql`${studentChallengeProgress.pointsEarned} > 0`
+          )
+        );
+      slotsMap.set(c.id, Math.max(0, (c.speedSlots ?? 1) - Number(countResult?.count ?? 0)));
     }
   }
 
@@ -117,6 +137,13 @@ export default async function StudentPage({ params }: Props) {
       badgeName: c.badgeName,
       anchorSession: c.anchorSession,
       streakRequired: c.streakRequired,
+      speedSlots: c.speedSlots ?? null,
+      checkinWindowSeconds: c.checkinWindowSeconds ?? null,
+      checkinActivatedAt: c.checkinActivatedAt?.toISOString() ?? null,
+      wagerMin: c.wagerMin ?? null,
+      wagerMax: c.wagerMax ?? null,
+      chainRequired: c.chainRequired ?? null,
+      auctionMinBid: c.auctionMinBid ?? null,
       deadline: c.deadline?.toISOString() ?? null,
       decayEnabled: c.decayEnabled,
       decayStartPoints: c.decayStartPoints,
@@ -152,7 +179,17 @@ export default async function StudentPage({ params }: Props) {
       }
       return null;
     })(),
+    taskSubmission: (c.type === "task" || c.type === "bounty") ? (taskSubMap.get(c.id) ?? null) : null,
     anchorSession: c.anchorSession,
+    ...(c.type === "speedrun" && { slotsRemaining: slotsMap.get(c.id) ?? 0 }),
+    ...(c.type === "checkin" && {
+      checkinWindowOpen: c.checkinActivatedAt
+        ? new Date() >= c.checkinActivatedAt && new Date() < new Date(c.checkinActivatedAt.getTime() + (c.checkinWindowSeconds ?? 300) * 1000)
+        : false,
+      checkinWindowEndsAt: c.checkinActivatedAt
+        ? new Date(c.checkinActivatedAt.getTime() + (c.checkinWindowSeconds ?? 300) * 1000).toISOString()
+        : undefined,
+    }),
   }));
 
   // Compute stats — include attendance points (10 per present session) to match leaderboard

@@ -23,12 +23,19 @@ export default function CreateChallengeModal({
 }: CreateChallengeModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"quiz" | "task" | "streak">("quiz");
+  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction">("quiz");
   const [pointsReward, setPointsReward] = useState(10);
   const [badgeEmoji, setBadgeEmoji] = useState("");
   const [badgeName, setBadgeName] = useState("");
   const [anchorSession, setAnchorSession] = useState(1);
   const [streakRequired, setStreakRequired] = useState(3);
+  const [speedSlots, setSpeedSlots] = useState(5);
+  const [checkinWindowMinutes, setCheckinWindowMinutes] = useState(5);
+  const [checkinScheduledAt, setCheckinScheduledAt] = useState("");
+  const [wagerMin, setWagerMin] = useState(5);
+  const [wagerMax, setWagerMax] = useState(50);
+  const [chainRequired, setChainRequired] = useState(5);
+  const [auctionMinBid, setAuctionMinBid] = useState(10);
   const [questions, setQuestions] = useState<QuestionInput[]>([
     { questionText: "", options: ["", "", "", ""], correctIndex: 0 },
   ]);
@@ -92,9 +99,9 @@ export default function CreateChallengeModal({
         description,
         type,
         status: "active",
-        pointsReward,
-        badgeEmoji: badgeEmoji || null,
-        badgeName: badgeName || null,
+        pointsReward: type === "poll" ? 0 : pointsReward,
+        badgeEmoji: type === "poll" ? null : (badgeEmoji || null),
+        badgeName: type === "poll" ? null : (badgeName || null),
         anchorSession,
       };
 
@@ -102,19 +109,49 @@ export default function CreateChallengeModal({
         body.streakRequired = streakRequired;
       }
 
-      if (type === "quiz") {
+      if (type === "speedrun") {
+        body.speedSlots = speedSlots;
+      }
+
+      if (type === "checkin") {
+        body.checkinWindowSeconds = checkinWindowMinutes * 60;
+        if (checkinScheduledAt) {
+          body.checkinActivatedAt = new Date(checkinScheduledAt).toISOString();
+        }
+      }
+
+      if (type === "quiz" || type === "wager") {
         body.questions = questions;
       }
 
-      if (isTimeBound && deadline) {
+      if (type === "poll") {
+        body.questions = questions.map((q) => ({ ...q, correctIndex: -1 }));
+      }
+
+      if (type === "wager") {
+        body.wagerMin = wagerMin;
+        body.wagerMax = wagerMax;
+      }
+
+      if (type === "chain") {
+        body.chainRequired = chainRequired;
+      }
+
+      if (type === "auction") {
+        body.auctionMinBid = auctionMinBid;
+      }
+
+      if (type !== "poll" && type !== "checkin" && isTimeBound && deadline) {
         body.deadline = new Date(deadline).toISOString();
       }
 
-      body.decayEnabled = decayEnabled;
-      if (decayEnabled) {
-        body.decayStartPoints = decayStartPoints;
-        body.decayPointsPerInterval = decayPointsPerInterval;
-        body.decayIntervalSeconds = toSeconds(decayIntervalValue, decayIntervalUnit);
+      if (type !== "poll" && type !== "checkin") {
+        body.decayEnabled = decayEnabled;
+        if (decayEnabled) {
+          body.decayStartPoints = decayStartPoints;
+          body.decayPointsPerInterval = decayPointsPerInterval;
+          body.decayIntervalSeconds = toSeconds(decayIntervalValue, decayIntervalUnit);
+        }
       }
 
       const res = await fetch("/api/challenges", {
@@ -137,6 +174,13 @@ export default function CreateChallengeModal({
       setBadgeName("");
       setAnchorSession(1);
       setStreakRequired(3);
+      setSpeedSlots(5);
+      setCheckinWindowMinutes(5);
+      setCheckinScheduledAt("");
+      setWagerMin(5);
+      setWagerMax(50);
+      setChainRequired(5);
+      setAuctionMinBid(10);
       setQuestions([
         { questionText: "", options: ["", "", "", ""], correctIndex: 0 },
       ]);
@@ -177,12 +221,18 @@ export default function CreateChallengeModal({
             <label className={labelClass}>Type</label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as "quiz" | "task" | "streak")}
+              onChange={(e) => setType(e.target.value as typeof type)}
               className={`${inputClass} bg-white`}
             >
               <option value="quiz">Quiz - Students answer questions</option>
               <option value="task">Task - Students submit work for review</option>
-              <option value="streak">Streak - Auto-awarded for attendance streak</option>
+              <option value="poll">Poll - Collect responses (no points)</option>
+              <option value="speedrun">Speed Run - First N students earn full points</option>
+              <option value="checkin">Check-in - Scheduled tap-in window</option>
+              <option value="wager">Wager - Bet points on a question</option>
+              <option value="bounty">Bounty - First correct answer wins all</option>
+              <option value="chain">Chain - Group relay, everyone wins</option>
+              <option value="auction">Auction - Bid points, highest wins</option>
             </select>
           </div>
 
@@ -210,7 +260,7 @@ export default function CreateChallengeModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {type === "poll" ? (
             <div>
               <label className={labelClass}>Anchor Session</label>
               <input
@@ -221,34 +271,49 @@ export default function CreateChallengeModal({
                 className={inputClass}
               />
             </div>
-            <div>
-              <label className={labelClass}>Points Reward</label>
-              <input
-                type="number"
-                min={0}
-                value={pointsReward}
-                onChange={(e) => setPointsReward(parseInt(e.target.value) || 0)}
-                className={inputClass}
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Anchor Session</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={anchorSession}
+                    onChange={(e) => setAnchorSession(parseInt(e.target.value) || 1)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Points Reward</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={pointsReward}
+                    onChange={(e) => setPointsReward(parseInt(e.target.value) || 0)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Badge Emoji</label>
-              <EmojiPicker value={badgeEmoji} onChange={setBadgeEmoji} />
-            </div>
-            <div>
-              <label className={labelClass}>Badge Name</label>
-              <input
-                type="text"
-                value={badgeName}
-                onChange={(e) => setBadgeName(e.target.value)}
-                className={inputClass}
-                placeholder="e.g. Quiz Master"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Badge Emoji</label>
+                  <EmojiPicker value={badgeEmoji} onChange={setBadgeEmoji} />
+                </div>
+                <div>
+                  <label className={labelClass}>Badge Name</label>
+                  <input
+                    type="text"
+                    value={badgeName}
+                    onChange={(e) => setBadgeName(e.target.value)}
+                    className={inputClass}
+                    placeholder="e.g. Quiz Master"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {type === "streak" && (
             <div>
@@ -265,7 +330,113 @@ export default function CreateChallengeModal({
             </div>
           )}
 
-          {/* Time-bound toggle */}
+          {type === "speedrun" && (
+            <div>
+              <label className={labelClass}>
+                Winner Slots (how many students earn full points)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={speedSlots}
+                onChange={(e) => setSpeedSlots(parseInt(e.target.value) || 1)}
+                className={inputClass}
+              />
+            </div>
+          )}
+
+          {type === "checkin" && (
+            <div className="space-y-3">
+              <div>
+                <label className={labelClass}>
+                  Scheduled Date &amp; Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={checkinScheduledAt}
+                  onChange={(e) => setCheckinScheduledAt(e.target.value)}
+                  required
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Window Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={checkinWindowMinutes}
+                  onChange={(e) => setCheckinWindowMinutes(parseInt(e.target.value) || 1)}
+                  className={inputClass}
+                />
+                <p className="text-xs text-[#8B7355]/70 mt-1">
+                  The check-in button opens at the scheduled time and stays open for this duration.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {type === "wager" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Min Wager</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={wagerMin}
+                  onChange={(e) => setWagerMin(parseInt(e.target.value) || 1)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Max Wager</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={wagerMax}
+                  onChange={(e) => setWagerMax(parseInt(e.target.value) || 1)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          )}
+
+          {type === "chain" && (
+            <div>
+              <label className={labelClass}>
+                Links Required (how many students needed)
+              </label>
+              <input
+                type="number"
+                min={2}
+                value={chainRequired}
+                onChange={(e) => setChainRequired(parseInt(e.target.value) || 2)}
+                className={inputClass}
+              />
+            </div>
+          )}
+
+          {type === "auction" && (
+            <div>
+              <label className={labelClass}>
+                Minimum Bid
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={auctionMinBid}
+                onChange={(e) => setAuctionMinBid(parseInt(e.target.value) || 1)}
+                className={inputClass}
+              />
+              <p className="text-xs text-[#8B7355]/70 mt-1">
+                Set a deadline — the highest bidder wins when time runs out.
+              </p>
+            </div>
+          )}
+
+          {/* Time-bound toggle (not for poll/checkin) */}
+          {type !== "poll" && type !== "checkin" && (
           <div className="space-y-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -286,8 +457,10 @@ export default function CreateChallengeModal({
               />
             )}
           </div>
+          )}
 
-          {/* Decay toggle */}
+          {/* Decay toggle (not for poll/checkin) */}
+          {type !== "poll" && type !== "checkin" && (
           <div className="space-y-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -349,8 +522,9 @@ export default function CreateChallengeModal({
               </div>
             )}
           </div>
+          )}
 
-          {type === "quiz" && (
+          {(type === "quiz" || type === "poll" || type === "wager") && (
             <div className="space-y-4">
               <label className="text-sm font-medium text-[#8B7355]">
                 Questions
@@ -389,13 +563,15 @@ export default function CreateChallengeModal({
 
                   {q.options.map((opt, oi) => (
                     <div key={oi} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name={`correct-${qi}`}
-                        checked={q.correctIndex === oi}
-                        onChange={() => updateQuestion(qi, "correctIndex", oi)}
-                        className="accent-green-500"
-                      />
+                      {(type === "quiz" || type === "wager") && (
+                        <input
+                          type="radio"
+                          name={`correct-${qi}`}
+                          checked={q.correctIndex === oi}
+                          onChange={() => updateQuestion(qi, "correctIndex", oi)}
+                          className="accent-green-500"
+                        />
+                      )}
                       <input
                         type="text"
                         value={opt}

@@ -46,7 +46,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* ─── Main content ─── */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Mobile header */}
         <header className="md:hidden bg-[#1A1A1A] text-white px-4 py-4 flex items-center justify-between">
           <Logo size="sm" />
@@ -58,7 +58,7 @@ export default function DashboardLayout({
           </button>
         </header>
 
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8">
+        <main className="flex-1 flex flex-col min-h-0 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8">
           {children}
         </main>
       </div>
