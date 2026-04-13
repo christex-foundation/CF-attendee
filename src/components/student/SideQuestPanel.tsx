@@ -174,7 +174,17 @@ export default function SideQuestPanel({
           </div>
         </div>
 
-        <p className="text-sm text-gray-600 mb-3">{challenge.description}</p>
+        <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">
+          {challenge.description.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+            /^https?:\/\//.test(part) ? (
+              <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">
+                {part}
+              </a>
+            ) : (
+              part
+            )
+          )}
+        </p>
 
         {challenge.deadline && !completed && (
           <p className="text-xs text-red-500 font-medium mb-5">
