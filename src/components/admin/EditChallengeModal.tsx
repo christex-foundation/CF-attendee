@@ -26,7 +26,7 @@ export default function EditChallengeModal({
 }: EditChallengeModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction">("quiz");
+  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel">("quiz");
   const [pointsReward, setPointsReward] = useState(10);
   const [badgeEmoji, setBadgeEmoji] = useState("");
   const [badgeName, setBadgeName] = useState("");
@@ -179,7 +179,7 @@ export default function EditChallengeModal({
         body.questions = questions.map((q) => ({ ...q, correctIndex: -1 }));
       }
 
-      if (type === "wager") {
+      if (type === "wager" || type === "duel") {
         body.wagerMin = wagerMin;
         body.wagerMax = wagerMax;
       }
@@ -244,7 +244,7 @@ export default function EditChallengeModal({
             <div>
               <label className={labelClass}>Type</label>
               <div className={`${inputClass} bg-[#F5F0EB] text-[#8B7355] cursor-not-allowed`}>
-                {{ quiz: "Quiz", task: "Task", streak: "Streak", poll: "Poll", speedrun: "Speed Run", checkin: "Check-in", wager: "Wager", bounty: "Bounty", chain: "Chain", auction: "Auction" }[type]}
+                {{ quiz: "Quiz", task: "Task", streak: "Streak", poll: "Poll", speedrun: "Speed Run", checkin: "Check-in", wager: "Wager", bounty: "Bounty", chain: "Chain", auction: "Auction", duel: "Duel" }[type]}
               </div>
             </div>
 
@@ -340,6 +340,38 @@ export default function EditChallengeModal({
                   className={inputClass}
                 />
               </div>
+            )}
+
+            {(type === "wager" || type === "duel") && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>{type === "duel" ? "Min Stake" : "Min Wager"}</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={wagerMin}
+                      onChange={(e) => setWagerMin(parseInt(e.target.value) || 1)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{type === "duel" ? "Max Stake" : "Max Wager"}</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={wagerMax}
+                      onChange={(e) => setWagerMax(parseInt(e.target.value) || 1)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                {type === "duel" && (
+                  <p className="text-xs text-[#8B7355]/70 -mt-2">
+                    Students pick an amount in this range to wager on a classmate. Winner takes the loser&apos;s stake.
+                  </p>
+                )}
+              </>
             )}
 
             {type === "checkin" && (

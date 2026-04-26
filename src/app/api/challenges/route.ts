@@ -111,6 +111,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (type === "duel") {
+      if (!wagerMin || !wagerMax || wagerMin < 1 || wagerMax < wagerMin) {
+        return NextResponse.json(
+          { error: "wagerMin and wagerMax are required (min >= 1, max >= min) for duel challenges" },
+          { status: 400 }
+        );
+      }
+    }
+
     const [challenge] = await db
       .insert(challenges)
       .values({
@@ -126,8 +135,8 @@ export async function POST(request: NextRequest) {
         speedSlots: type === "speedrun" ? speedSlots : null,
         checkinWindowSeconds: type === "checkin" ? checkinWindowSeconds : null,
         checkinActivatedAt: type === "checkin" && checkinActivatedAt ? new Date(checkinActivatedAt) : null,
-        wagerMin: type === "wager" ? wagerMin : null,
-        wagerMax: type === "wager" ? wagerMax : null,
+        wagerMin: type === "wager" || type === "duel" ? wagerMin : null,
+        wagerMax: type === "wager" || type === "duel" ? wagerMax : null,
         chainRequired: type === "chain" ? chainRequired : null,
         auctionMinBid: type === "auction" ? auctionMinBid : null,
         deadline: deadline ? new Date(deadline) : null,

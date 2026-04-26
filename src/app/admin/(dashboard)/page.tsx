@@ -6,6 +6,7 @@ import AttendanceMarker from "@/components/admin/AttendanceMarker";
 import CreateChallengeModal from "@/components/admin/CreateChallengeModal";
 import ChallengesList from "@/components/admin/ChallengesList";
 import TaskSubmissionsModal from "@/components/admin/TaskSubmissionsModal";
+import DuelsModal from "@/components/admin/DuelsModal";
 import AddPointsModal from "@/components/admin/AddPointsModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
 import EditChallengeModal from "@/components/admin/EditChallengeModal";
@@ -28,7 +29,7 @@ export default function DashboardPage() {
   const [showAttendance, setShowAttendance] = useState(false);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [submissionsChallengeId, setSubmissionsChallengeId] = useState<number | null>(null);
-  const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | null>(null);
+  const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [pointsStudent, setPointsStudent] = useState<{ id: number; name: string } | null>(null);
   const [editStudent, setEditStudent] = useState<{ id: number; name: string; slug?: string; avatarUrl?: string | null } | null>(null);
@@ -357,9 +358,17 @@ export default function DashboardPage() {
         onCreated={fetchChallenges}
       />
       <TaskSubmissionsModal
-        open={submissionsChallengeId !== null}
+        open={submissionsChallengeId !== null && submissionsChallengeType !== "duel"}
         challengeId={submissionsChallengeId}
-        challengeType={submissionsChallengeType}
+        challengeType={submissionsChallengeType === "duel" ? null : submissionsChallengeType}
+        onClose={() => {
+          setSubmissionsChallengeId(null);
+          setSubmissionsChallengeType(null);
+        }}
+      />
+      <DuelsModal
+        open={submissionsChallengeId !== null && submissionsChallengeType === "duel"}
+        challengeId={submissionsChallengeId}
         onClose={() => {
           setSubmissionsChallengeId(null);
           setSubmissionsChallengeType(null);

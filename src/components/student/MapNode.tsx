@@ -288,13 +288,15 @@ export default function MapNode({
 
 /* ─── Helper: generate 5-pointed star SVG points ─── */
 function starPoints(cx: number, cy: number, r: number): string {
+  // Round to 2 decimals so Node V8 and browser V8 produce the same string.
+  const r2 = (n: number) => Math.round(n * 100) / 100;
   const inner = r * 0.45;
   const points: string[] = [];
   for (let i = 0; i < 5; i++) {
     const outerAngle = (Math.PI / 2) + (i * 2 * Math.PI) / 5;
     const innerAngle = outerAngle + Math.PI / 5;
-    points.push(`${cx + r * Math.cos(outerAngle)},${cy - r * Math.sin(outerAngle)}`);
-    points.push(`${cx + inner * Math.cos(innerAngle)},${cy - inner * Math.sin(innerAngle)}`);
+    points.push(`${r2(cx + r * Math.cos(outerAngle))},${r2(cy - r * Math.sin(outerAngle))}`);
+    points.push(`${r2(cx + inner * Math.cos(innerAngle))},${r2(cy - inner * Math.sin(innerAngle))}`);
   }
   return points.join(" ");
 }

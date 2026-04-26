@@ -3,7 +3,7 @@
 interface SideQuestNodeProps {
   cx: number;
   cy: number;
-  type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction";
+  type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel";
   completed: boolean;
   expired?: boolean;
   badgeEmoji: string | null;
@@ -93,6 +93,14 @@ const typeConfigs = {
     stroke: "#854D0E",
     label: "$",
   },
+  duel: {
+    outer: "#F87171",
+    fill: "#DC2626",
+    gradLight: "#FCA5A5",
+    gradDark: "#B91C1C",
+    stroke: "#991B1B",
+    label: "⚔",
+  },
 };
 
 export default function SideQuestNode({
@@ -112,12 +120,14 @@ export default function SideQuestNode({
   const locked = expired && !completed;
   const opacity = locked ? 0.4 : completed ? 1 : 0.85;
 
-  // Hexagon points
+  // Hexagon points — round to 2dp so SSR (Node V8) and client (browser V8)
+  // emit the same string for the polygon attribute.
   function hexPoints(cx: number, cy: number, r: number): string {
+    const r2 = (n: number) => Math.round(n * 100) / 100;
     const points: string[] = [];
     for (let i = 0; i < 6; i++) {
       const angle = (Math.PI / 3) * i - Math.PI / 6;
-      points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+      points.push(`${r2(cx + r * Math.cos(angle))},${r2(cy + r * Math.sin(angle))}`);
     }
     return points.join(" ");
   }

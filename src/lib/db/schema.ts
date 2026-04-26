@@ -26,6 +26,16 @@ export const challengeTypeEnum = pgEnum("challenge_type", [
   "bounty",
   "chain",
   "auction",
+  "duel",
+]);
+
+export const duelStatusEnum = pgEnum("duel_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "submitted",
+  "resolved",
+  "void",
 ]);
 
 export const challengeStatusEnum = pgEnum("challenge_status", [
@@ -189,3 +199,31 @@ export const auctionBids = pgTable("auction_bids", {
   amount: integer("amount").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const studentDuels = pgTable(
+  "student_duels",
+  {
+    id: serial("id").primaryKey(),
+    challengeId: integer("challenge_id")
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    challengerId: integer("challenger_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    opponentId: integer("opponent_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    wagerAmount: integer("wager_amount").notNull(),
+    status: duelStatusEnum("status").notNull().default("pending"),
+    challengerSubmission: text("challenger_submission"),
+    opponentSubmission: text("opponent_submission"),
+    challengerSubmittedAt: timestamp("challenger_submitted_at"),
+    opponentSubmittedAt: timestamp("opponent_submitted_at"),
+    winnerId: integer("winner_id").references(() => students.id, {
+      onDelete: "set null",
+    }),
+    actualPointsTransferred: integer("actual_points_transferred"),
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  }
+);

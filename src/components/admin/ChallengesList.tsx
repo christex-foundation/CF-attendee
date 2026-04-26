@@ -23,6 +23,7 @@ const typeBadge = {
   bounty: { bg: "bg-lime-50 text-lime-700 border-lime-200", label: "Bounty" },
   chain: { bg: "bg-violet-50 text-violet-700 border-violet-200", label: "Chain" },
   auction: { bg: "bg-yellow-50 text-yellow-700 border-yellow-200", label: "Auction" },
+  duel: { bg: "bg-red-50 text-red-700 border-red-200", label: "Duel" },
 };
 
 const statusBadge = {
@@ -143,6 +144,9 @@ export default function ChallengesList({
             {c.type === "auction" && c.auctionMinBid && (
               <span>Min bid: {c.auctionMinBid} pts</span>
             )}
+            {c.type === "duel" && c.wagerMin != null && (
+              <span>Stake: {c.wagerMin}–{c.wagerMax} pts</span>
+            )}
             {c.badgeName && <span>Badge: {c.badgeName}</span>}
           </div>
 
@@ -168,6 +172,15 @@ export default function ChallengesList({
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F5E6D3] text-[#8B7355] hover:bg-[#EADCC6] transition cursor-pointer"
               >
                 {c.type === "quiz" ? "View Attempts" : "View Submissions"}
+              </button>
+            )}
+
+            {c.type === "duel" && (
+              <button
+                onClick={() => onViewSubmissions(c.id, c.type)}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition cursor-pointer"
+              >
+                Resolve Duels
               </button>
             )}
 

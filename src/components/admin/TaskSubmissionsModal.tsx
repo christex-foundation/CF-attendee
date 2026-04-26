@@ -39,7 +39,7 @@ interface QuizAttempt {
 interface SubmissionsModalProps {
   open: boolean;
   challengeId: number | null;
-  challengeType: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | null;
+  challengeType: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel" | null;
   onClose: () => void;
 }
 

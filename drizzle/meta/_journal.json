@@ -43,6 +43,13 @@
       "when": 1775660306385,
       "tag": "0005_conscious_rictor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777234519154,
+      "tag": "0006_add_duels",
+      "breakpoints": true
     }
   ]
 }

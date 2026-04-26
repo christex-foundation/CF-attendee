@@ -27,7 +27,13 @@ interface ProgressMapProps {
 }
 
 /* ─── Candy decoration SVG snippets ─── */
+// Node V8 and browser V8 disagree on Number.toString() for some doubles
+// (e.g. 155.22228256875428 vs 155.2222825687543). Round before any value
+// reaches an SVG attribute so SSR and client emit identical strings.
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 function Lollipop({ x, y, color, size = 1 }: { x: number; y: number; color: string; size?: number }) {
+  x = r2(x); y = r2(y);
   const s = 12 * size;
   return (
     <g className="animate-float-candy" style={{ animationDelay: `${x % 3}s` }}>
@@ -40,6 +46,7 @@ function Lollipop({ x, y, color, size = 1 }: { x: number; y: number; color: stri
 }
 
 function CandyCane({ x, y, flip = false }: { x: number; y: number; flip?: boolean }) {
+  x = r2(x); y = r2(y);
   const scaleX = flip ? -1 : 1;
   return (
     <g transform={`translate(${x},${y}) scale(${scaleX},1)`} opacity={0.3}>
@@ -50,10 +57,11 @@ function CandyCane({ x, y, flip = false }: { x: number; y: number; flip?: boolea
 }
 
 function Star4({ x, y, size, color }: { x: number; y: number; size: number; color: string }) {
+  x = r2(x); y = r2(y); size = r2(size);
   return (
     <g className="animate-sparkle" style={{ animationDelay: `${(x + y) % 4}s` }}>
       <polygon
-        points={`${x},${y - size} ${x + size * 0.3},${y - size * 0.3} ${x + size},${y} ${x + size * 0.3},${y + size * 0.3} ${x},${y + size} ${x - size * 0.3},${y + size * 0.3} ${x - size},${y} ${x - size * 0.3},${y - size * 0.3}`}
+        points={`${r2(x)},${r2(y - size)} ${r2(x + size * 0.3)},${r2(y - size * 0.3)} ${r2(x + size)},${r2(y)} ${r2(x + size * 0.3)},${r2(y + size * 0.3)} ${r2(x)},${r2(y + size)} ${r2(x - size * 0.3)},${r2(y + size * 0.3)} ${r2(x - size)},${r2(y)} ${r2(x - size * 0.3)},${r2(y - size * 0.3)}`}
         fill={color}
         opacity={0.8}
       />
@@ -145,7 +153,11 @@ export default function ProgressMap({
 
   const nodes = sortedSessions.map((session, index) => {
     const cy = totalHeight - bottomPadding - index * nodeSpacingY;
-    const cx = centerX + Math.sin((index * Math.PI) / 2.2 - Math.PI / 2) * amplitude;
+    // Round to 2 decimals so SSR (Node V8) and client (browser V8) emit
+    // the same string for SVG attributes — they diverge at full float precision.
+    const cx = Math.round(
+      (centerX + Math.sin((index * Math.PI) / 2.2 - Math.PI / 2) * amplitude) * 100
+    ) / 100;
     return { ...session, cx, cy };
   });
 
@@ -178,8 +190,9 @@ export default function ProgressMap({
     x1: number, y1: number,
     x2: number, y2: number
   ): string {
+    const r = (n: number) => (Math.round(n * 100) / 100).toString();
     const dy = (y2 - y1) * 0.4;
-    return `M${x1},${y1} C${x1},${y1 + dy} ${x2},${y2 - dy} ${x2},${y2}`;
+    return `M${r(x1)},${r(y1)} C${r(x1)},${r(y1 + dy)} ${r(x2)},${r(y2 - dy)} ${r(x2)},${r(y2)}`;
   }
 
   // Map side quests to their anchor nodes

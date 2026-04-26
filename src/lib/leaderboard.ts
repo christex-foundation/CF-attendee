@@ -4,6 +4,7 @@ import {
   attendance,
   studentChallengeProgress,
   manualPointsLog,
+  studentDuels,
 } from "@/lib/db/schema";
 import { eq, sql, asc, gte, and } from "drizzle-orm";
 
@@ -171,6 +172,54 @@ export async function computeLeaderboard(): Promise<{
 
   const weeklyManualMap = new Map(weeklyManual.map((m) => [m.studentId, Number(m.points)]));
 
+  // ─── Duel net (all-time): a student's resolved duels contribute +amount when winner, -amount when loser ───
+  const duelTotals = await db
+    .select({
+      studentId: sql<number>`s.student_id`.as("student_id"),
+      total: sql<number>`coalesce(sum(s.delta), 0)`.as("total"),
+    })
+    .from(
+      sql`(
+        select ${studentDuels.winnerId} as student_id,
+               coalesce(${studentDuels.actualPointsTransferred}, ${studentDuels.wagerAmount}) as delta
+          from ${studentDuels}
+         where ${studentDuels.status} = 'resolved' and ${studentDuels.winnerId} is not null
+        union all
+        select case when ${studentDuels.winnerId} = ${studentDuels.challengerId}
+                    then ${studentDuels.opponentId} else ${studentDuels.challengerId} end as student_id,
+               -coalesce(${studentDuels.actualPointsTransferred}, ${studentDuels.wagerAmount}) as delta
+          from ${studentDuels}
+         where ${studentDuels.status} = 'resolved' and ${studentDuels.winnerId} is not null
+      ) s`
+    )
+    .groupBy(sql`s.student_id`);
+  const duelMap = new Map(duelTotals.map((d) => [Number(d.studentId), Number(d.total)]));
+
+  // ─── Duel net (this week, by resolvedAt) ───
+  const duelTotalsWeek = await db
+    .select({
+      studentId: sql<number>`s.student_id`.as("student_id"),
+      total: sql<number>`coalesce(sum(s.delta), 0)`.as("total"),
+    })
+    .from(
+      sql`(
+        select ${studentDuels.winnerId} as student_id,
+               coalesce(${studentDuels.actualPointsTransferred}, ${studentDuels.wagerAmount}) as delta
+          from ${studentDuels}
+         where ${studentDuels.status} = 'resolved' and ${studentDuels.winnerId} is not null
+           and ${studentDuels.resolvedAt} >= ${startOfWeek}
+        union all
+        select case when ${studentDuels.winnerId} = ${studentDuels.challengerId}
+                    then ${studentDuels.opponentId} else ${studentDuels.challengerId} end as student_id,
+               -coalesce(${studentDuels.actualPointsTransferred}, ${studentDuels.wagerAmount}) as delta
+          from ${studentDuels}
+         where ${studentDuels.status} = 'resolved' and ${studentDuels.winnerId} is not null
+           and ${studentDuels.resolvedAt} >= ${startOfWeek}
+      ) s`
+    )
+    .groupBy(sql`s.student_id`);
+  const duelWeekMap = new Map(duelTotalsWeek.map((d) => [Number(d.studentId), Number(d.total)]));
+
   // Build leaderboard entries
   const entries = allStudents
     .map((s) => {
@@ -178,8 +227,13 @@ export async function computeLeaderboard(): Promise<{
       const pts = pointsMap.get(s.id) || { points: 0, completed: 0, badges: 0 };
       const streak = streakMap.get(s.id) || 0;
       const manualPts = s.manualPoints ?? 0;
-      const score = att.present * 10 + pts.points + manualPts;
-      const weeklyGain = (weeklyAttMap.get(s.id) || 0) + (weeklyChalMap.get(s.id) || 0) + (weeklyManualMap.get(s.id) || 0);
+      const duelPts = duelMap.get(s.id) || 0;
+      const score = att.present * 10 + pts.points + manualPts + duelPts;
+      const weeklyGain =
+        (weeklyAttMap.get(s.id) || 0) +
+        (weeklyChalMap.get(s.id) || 0) +
+        (weeklyManualMap.get(s.id) || 0) +
+        (duelWeekMap.get(s.id) || 0);
 
       return {
         id: s.id,
@@ -188,7 +242,7 @@ export async function computeLeaderboard(): Promise<{
         avatarUrl: s.avatarUrl,
         sessionsPresent: att.present,
         totalSessions: att.total,
-        challengePoints: pts.points,
+        challengePoints: pts.points + duelPts,
         manualPoints: manualPts,
         challengesCompleted: pts.completed,
         badges: pts.badges,

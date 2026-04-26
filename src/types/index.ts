@@ -1,5 +1,6 @@
 export type AttendanceStatus = "present" | "absent";
-export type ChallengeType = "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction";
+export type ChallengeType = "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel";
+export type DuelStatus = "pending" | "accepted" | "declined" | "submitted" | "resolved" | "void";
 export type ChallengeStatus = "draft" | "active" | "archived";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 
@@ -90,6 +91,26 @@ export interface SideQuestNode {
   highestBid?: number;
   highestBidder?: string;
   studentBid?: number;
+  pendingInviteCount?: number;
+}
+
+export interface StudentDuel {
+  id: number;
+  challengeId: number;
+  challengerId: number;
+  opponentId: number;
+  challengerName: string;
+  opponentName: string;
+  wagerAmount: number;
+  status: DuelStatus;
+  challengerSubmission: string | null;
+  opponentSubmission: string | null;
+  challengerSubmittedAt: string | null;
+  opponentSubmittedAt: string | null;
+  winnerId: number | null;
+  actualPointsTransferred: number | null;
+  resolvedAt: string | null;
+  createdAt: string;
 }
 
 export interface AttendanceRecordWithStudent extends AttendanceRecord {
