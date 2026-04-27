@@ -92,6 +92,8 @@ export interface SideQuestNode {
   highestBidder?: string;
   studentBid?: number;
   pendingInviteCount?: number;
+  bountyClaimed?: boolean;
+  checkinWindowClosed?: boolean;
 }
 
 export interface StudentDuel {

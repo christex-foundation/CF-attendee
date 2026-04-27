@@ -321,13 +321,18 @@ export default function ProgressMap({
         </div>
       </div>
 
-      {/* Active Challenges Banner */}
+      {/* Active Challenges Banner — only items the student hasn't attempted yet
+          and that are still actionable (not past deadline, not won by someone
+          else, not a closed check-in window). */}
       {(() => {
-        const pending = sideQuests.filter(
-          (sq) =>
-            !sq.progress?.completed &&
-            !(sq.challenge.deadline && new Date(sq.challenge.deadline) < new Date())
-        );
+        const pending = sideQuests.filter((sq) => {
+          if (sq.progress?.completed) return false;
+          if (sq.taskSubmission) return false; // attempted (task/bounty)
+          if (sq.challenge.deadline && new Date(sq.challenge.deadline) < new Date()) return false;
+          if (sq.challenge.type === "bounty" && sq.bountyClaimed) return false;
+          if (sq.challenge.type === "checkin" && sq.checkinWindowClosed) return false;
+          return true;
+        });
         if (pending.length === 0) return null;
         return (
           <button
@@ -535,6 +540,7 @@ export default function ProgressMap({
           highestBid={activeQuest.highestBid}
           highestBidder={activeQuest.highestBidder}
           studentBid={activeQuest.studentBid}
+          bountyClaimed={activeQuest.bountyClaimed}
         />
       )}
 

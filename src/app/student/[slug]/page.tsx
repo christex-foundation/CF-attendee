@@ -7,7 +7,7 @@ import {
   taskSubmissions,
   auctionBids,
 } from "@/lib/db/schema";
-import { eq, asc, and, desc, max, sql } from "drizzle-orm";
+import { eq, asc, and, desc, max, sql, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import StudentMapClient from "./client";
 
@@ -125,6 +125,24 @@ export default async function StudentPage({ params }: Props) {
     }
   }
 
+  // Bounties that already have an approved (winning) submission — frozen for everyone.
+  const bountyIds = activeChallenges.filter((c) => c.type === "bounty").map((c) => c.id);
+  const claimedBountyIds = bountyIds.length
+    ? new Set(
+        (
+          await db
+            .select({ challengeId: taskSubmissions.challengeId })
+            .from(taskSubmissions)
+            .where(
+              and(
+                inArray(taskSubmissions.challengeId, bountyIds),
+                eq(taskSubmissions.status, "approved")
+              )
+            )
+        ).map((r) => r.challengeId)
+      )
+    : new Set<number>();
+
   const sideQuests = activeChallenges.map((c) => ({
     challenge: {
       id: c.id,
@@ -182,9 +200,13 @@ export default async function StudentPage({ params }: Props) {
     taskSubmission: (c.type === "task" || c.type === "bounty") ? (taskSubMap.get(c.id) ?? null) : null,
     anchorSession: c.anchorSession,
     ...(c.type === "speedrun" && { slotsRemaining: slotsMap.get(c.id) ?? 0 }),
+    ...(c.type === "bounty" && { bountyClaimed: claimedBountyIds.has(c.id) }),
     ...(c.type === "checkin" && {
       checkinWindowOpen: c.checkinActivatedAt
         ? new Date() >= c.checkinActivatedAt && new Date() < new Date(c.checkinActivatedAt.getTime() + (c.checkinWindowSeconds ?? 300) * 1000)
+        : false,
+      checkinWindowClosed: c.checkinActivatedAt
+        ? new Date() >= new Date(c.checkinActivatedAt.getTime() + (c.checkinWindowSeconds ?? 300) * 1000)
         : false,
       checkinWindowEndsAt: c.checkinActivatedAt
         ? new Date(c.checkinActivatedAt.getTime() + (c.checkinWindowSeconds ?? 300) * 1000).toISOString()

@@ -41,6 +41,7 @@ interface SideQuestPanelProps {
   highestBid?: number;
   highestBidder?: string;
   studentBid?: number;
+  bountyClaimed?: boolean;
 }
 
 interface QuizQ {
@@ -111,6 +112,7 @@ export default function SideQuestPanel({
   highestBid,
   highestBidder,
   studentBid,
+  bountyClaimed,
 }: SideQuestPanelProps) {
   const [questions, setQuestions] = useState<QuizQ[]>([]);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -916,6 +918,13 @@ export default function SideQuestPanel({
                 <div className="text-3xl mb-2">📨</div>
                 <p className="text-sm font-semibold text-lime-600">
                   Submitted! First correct answer wins the bounty.
+                </p>
+              </div>
+            ) : bountyClaimed ? (
+              <div className="text-center py-4">
+                <div className="text-3xl mb-2">🔒</div>
+                <p className="text-sm font-semibold text-gray-500">
+                  This bounty has already been claimed.
                 </p>
               </div>
             ) : (
