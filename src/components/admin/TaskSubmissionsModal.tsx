@@ -80,6 +80,7 @@ export default function TaskSubmissionsModal({
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
   const [expandedAttempt, setExpandedAttempt] = useState<number | null>(null);
+  const [pendingIndex, setPendingIndex] = useState(0);
 
   const fetchData = useCallback(async () => {
     if (!challengeId || !challengeType) return;
@@ -111,6 +112,7 @@ export default function TaskSubmissionsModal({
       setQuizAttempts([]);
       setPollResults(null);
       setExpandedAttempt(null);
+      setPendingIndex(0);
       fetchData();
     }
   }, [open, challengeId, fetchData]);
@@ -344,15 +346,39 @@ export default function TaskSubmissionsModal({
                 );
               }
 
-              const sub = pending[0];
-              const current = reviewedCount + 1;
+              const safeIndex = Math.min(pendingIndex, pending.length - 1);
+              const sub = pending[safeIndex];
               return (
                 <div>
                   <div className="flex items-center justify-between mb-3 text-xs font-semibold text-[#8B7355]">
-                    <span>
-                      Reviewing {current} of {taskSubs.length}
-                    </span>
-                    <span>{pending.length} pending</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPendingIndex((i) => Math.max(0, i - 1))}
+                        disabled={safeIndex === 0}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F5F0EB] text-[#8B7355] hover:bg-[#E8E0D8] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                        aria-label="Previous pending submission"
+                      >
+                        ‹
+                      </button>
+                      <span>
+                        Reviewing {safeIndex + 1} of {pending.length} pending
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingIndex((i) =>
+                            Math.min(pending.length - 1, i + 1)
+                          )
+                        }
+                        disabled={safeIndex === pending.length - 1}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F5F0EB] text-[#8B7355] hover:bg-[#E8E0D8] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                        aria-label="Next pending submission"
+                      >
+                        ›
+                      </button>
+                    </div>
+                    <span>{reviewedCount} of {taskSubs.length} graded</span>
                   </div>
                   <div className="w-full h-1.5 bg-[#F5F0EB] rounded-full overflow-hidden mb-4">
                     <div

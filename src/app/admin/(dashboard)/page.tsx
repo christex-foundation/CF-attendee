@@ -7,6 +7,7 @@ import CreateChallengeModal from "@/components/admin/CreateChallengeModal";
 import ChallengesList from "@/components/admin/ChallengesList";
 import TaskSubmissionsModal from "@/components/admin/TaskSubmissionsModal";
 import DuelsModal from "@/components/admin/DuelsModal";
+import BountySubmissionsModal from "@/components/admin/BountySubmissionsModal";
 import AddPointsModal from "@/components/admin/AddPointsModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
 import EditChallengeModal from "@/components/admin/EditChallengeModal";
@@ -358,9 +359,17 @@ export default function DashboardPage() {
         onCreated={fetchChallenges}
       />
       <TaskSubmissionsModal
-        open={submissionsChallengeId !== null && submissionsChallengeType !== "duel"}
+        open={
+          submissionsChallengeId !== null &&
+          submissionsChallengeType !== "duel" &&
+          submissionsChallengeType !== "bounty"
+        }
         challengeId={submissionsChallengeId}
-        challengeType={submissionsChallengeType === "duel" ? null : submissionsChallengeType}
+        challengeType={
+          submissionsChallengeType === "duel" || submissionsChallengeType === "bounty"
+            ? null
+            : submissionsChallengeType
+        }
         onClose={() => {
           setSubmissionsChallengeId(null);
           setSubmissionsChallengeType(null);
@@ -368,6 +377,14 @@ export default function DashboardPage() {
       />
       <DuelsModal
         open={submissionsChallengeId !== null && submissionsChallengeType === "duel"}
+        challengeId={submissionsChallengeId}
+        onClose={() => {
+          setSubmissionsChallengeId(null);
+          setSubmissionsChallengeType(null);
+        }}
+      />
+      <BountySubmissionsModal
+        open={submissionsChallengeId !== null && submissionsChallengeType === "bounty"}
         challengeId={submissionsChallengeId}
         onClose={() => {
           setSubmissionsChallengeId(null);
