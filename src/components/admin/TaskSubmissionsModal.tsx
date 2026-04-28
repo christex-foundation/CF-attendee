@@ -34,6 +34,7 @@ interface QuizAttempt {
   total: number;
   passed: boolean;
   attemptedAt: string;
+  pointsEarned: number | null;
 }
 
 interface SubmissionsModalProps {
@@ -89,7 +90,7 @@ export default function TaskSubmissionsModal({
       if (challengeType === "task" || challengeType === "bounty") {
         const res = await fetch(`/api/challenges/${challengeId}/submissions`);
         if (res.ok) setTaskSubs(await res.json());
-      } else if (challengeType === "quiz") {
+      } else if (challengeType === "quiz" || challengeType === "wager") {
         const res = await fetch(`/api/challenges/${challengeId}/attempts`);
         if (res.ok) {
           const data = await res.json();
@@ -149,7 +150,16 @@ export default function TaskSubmissionsModal({
     }
   }
 
-  const title = challengeType === "quiz" ? "Quiz Attempts" : challengeType === "poll" ? "Poll Results" : challengeType === "bounty" ? "Bounty Submissions" : "Task Submissions";
+  const title =
+    challengeType === "quiz"
+      ? "Quiz Attempts"
+      : challengeType === "wager"
+      ? "Wager Attempts"
+      : challengeType === "poll"
+      ? "Poll Results"
+      : challengeType === "bounty"
+      ? "Bounty Submissions"
+      : "Task Submissions";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
@@ -175,11 +185,11 @@ export default function TaskSubmissionsModal({
           </div>
         ) : (
           <>
-            {/* ─── Quiz Attempts View ─── */}
-            {challengeType === "quiz" && (
+            {/* ─── Quiz / Wager Attempts View ─── */}
+            {(challengeType === "quiz" || challengeType === "wager") && (
               quizAttempts.length === 0 ? (
                 <p className="text-[#8B7355] text-center py-8">
-                  No quiz attempts yet
+                  No {challengeType === "wager" ? "wager" : "quiz"} attempts yet
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -217,6 +227,19 @@ export default function TaskSubmissionsModal({
                           >
                             {attempt.score}/{attempt.total}
                           </span>
+                          {challengeType === "wager" && attempt.pointsEarned != null && (
+                            <span
+                              className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${
+                                attempt.pointsEarned > 0
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : attempt.pointsEarned < 0
+                                  ? "bg-red-50 text-red-600 border-red-200"
+                                  : "bg-gray-50 text-gray-500 border-gray-200"
+                              }`}
+                            >
+                              {attempt.pointsEarned > 0 ? `+${attempt.pointsEarned}` : attempt.pointsEarned} pts
+                            </span>
+                          )}
                           <span
                             className={`text-xs font-semibold px-2 py-0.5 rounded-lg border ${
                               attempt.passed
@@ -466,7 +489,7 @@ export default function TaskSubmissionsModal({
             )}
 
             {/* ─── Streak (no submissions) ─── */}
-            {(challengeType === "streak" || challengeType === "speedrun" || challengeType === "checkin" || challengeType === "wager" || challengeType === "chain" || challengeType === "auction") && (
+            {(challengeType === "streak" || challengeType === "speedrun" || challengeType === "checkin" || challengeType === "chain" || challengeType === "auction") && (
               <p className="text-[#8B7355] text-center py-8">
                 {challengeType === "streak"
                   ? "Streak challenges are auto-completed based on attendance. No submissions to review."

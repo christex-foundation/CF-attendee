@@ -79,7 +79,12 @@ interface DuelView {
 async function loadDuelsForView(
   challengeId: number,
   studentId: number
-): Promise<{ active: DuelView[]; incoming: DuelView[]; resolved: DuelView[] }> {
+): Promise<{
+  active: DuelView[];
+  incoming: DuelView[];
+  outgoing: DuelView[];
+  resolved: DuelView[];
+}> {
   const challengerStudent = { id: students.id, name: students.name };
   const rows = await db
     .select({
@@ -144,6 +149,9 @@ async function loadDuelsForView(
     ),
     incoming: view.filter(
       (d) => d.status === "pending" && d.opponentId === studentId
+    ),
+    outgoing: view.filter(
+      (d) => d.status === "pending" && d.challengerId === studentId
     ),
     resolved: view.filter(
       (d) => d.status === "resolved" || d.status === "void"
@@ -228,6 +236,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       students: eligibleOpponents,
       activeDuels: duels.active,
       incomingInvites: duels.incoming,
+      outgoingChallenges: duels.outgoing,
       resolvedDuels: duels.resolved,
       declineCount,
       canDecline: declineCount < MAX_DECLINES_PER_TEMPLATE,

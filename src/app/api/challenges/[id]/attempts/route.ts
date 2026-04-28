@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { quizAttempts, quizQuestions, students } from "@/lib/db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import {
+  quizAttempts,
+  quizQuestions,
+  students,
+  studentChallengeProgress,
+} from "@/lib/db/schema";
+import { eq, desc, asc, and } from "drizzle-orm";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -19,7 +24,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
       .where(eq(quizQuestions.challengeId, challengeId))
       .orderBy(asc(quizQuestions.orderIndex));
 
-    // Get all attempts with student names
+    // Get all attempts with student names + their progress points (so wager
+    // attempts can show +N / -N per row).
     const attempts = await db
       .select({
         id: quizAttempts.id,
@@ -31,9 +37,17 @@ export async function GET(_request: NextRequest, { params }: Params) {
         total: quizAttempts.total,
         passed: quizAttempts.passed,
         attemptedAt: quizAttempts.attemptedAt,
+        pointsEarned: studentChallengeProgress.pointsEarned,
       })
       .from(quizAttempts)
       .innerJoin(students, eq(quizAttempts.studentId, students.id))
+      .leftJoin(
+        studentChallengeProgress,
+        and(
+          eq(studentChallengeProgress.studentId, quizAttempts.studentId),
+          eq(studentChallengeProgress.challengeId, quizAttempts.challengeId)
+        )
+      )
       .where(eq(quizAttempts.challengeId, challengeId))
       .orderBy(desc(quizAttempts.attemptedAt));
 

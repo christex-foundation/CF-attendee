@@ -73,6 +73,7 @@ interface DuelStateResponse {
   students: { id: number; name: string; slug: string }[];
   activeDuels: DuelInstanceView[];
   incomingInvites: DuelInstanceView[];
+  outgoingChallenges: DuelInstanceView[];
   resolvedDuels: DuelInstanceView[];
   declineCount: number;
   canDecline: boolean;
@@ -136,7 +137,7 @@ export default function SideQuestPanel({
   const [duelData, setDuelData] = useState<DuelStateResponse | null>(null);
   const [duelStakeAmount, setDuelStakeAmount] = useState(0);
   const [duelOpponentSlug, setDuelOpponentSlug] = useState("");
-  const [duelSubmissionText, setDuelSubmissionText] = useState("");
+  const [duelSubmissionText, setDuelSubmissionText] = useState<Record<number, string>>({});
   const [duelError, setDuelError] = useState("");
 
   useEffect(() => {
@@ -200,7 +201,7 @@ export default function SideQuestPanel({
     setChainResult(null);
     setBidPlaced(false);
     setDuelOpponentSlug("");
-    setDuelSubmissionText("");
+    setDuelSubmissionText({});
     setDuelError("");
   }, [open, challenge.id, challenge.type, studentSlug, completed]);
 
@@ -425,7 +426,8 @@ export default function SideQuestPanel({
 
   async function submitDuelEntry(duelId: number) {
     setDuelError("");
-    if (!duelSubmissionText.trim()) {
+    const text = (duelSubmissionText[duelId] ?? "").trim();
+    if (!text) {
       setDuelError("Add your submission first");
       return;
     }
@@ -436,7 +438,7 @@ export default function SideQuestPanel({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ submissionText: duelSubmissionText }),
+          body: JSON.stringify({ submissionText: text }),
         }
       );
       if (!res.ok) {
@@ -444,7 +446,11 @@ export default function SideQuestPanel({
         setDuelError(data.error || "Failed to submit");
         return;
       }
-      setDuelSubmissionText("");
+      setDuelSubmissionText((prev) => {
+        const next = { ...prev };
+        delete next[duelId];
+        return next;
+      });
       await refreshDuel();
     } finally {
       setLoading(false);
@@ -1062,40 +1068,67 @@ export default function SideQuestPanel({
         )}
 
         {/* Duel */}
-        {challenge.type === "duel" && duelData && (
+        {challenge.type === "duel" && duelData && (() => {
+          // Split active duels into three buckets so "needs my submission"
+          // is loud and at the top, instead of buried with "waiting" cards.
+          const meId = duelData.meId;
+          const needsMySub: typeof duelData.activeDuels = [];
+          const waitingOnOpp: typeof duelData.activeDuels = [];
+          const awaitingVerdict: typeof duelData.activeDuels = [];
+          for (const d of duelData.activeDuels) {
+            const isChallenger = d.challengerId === meId;
+            const mySub = isChallenger ? d.challengerSubmission : d.opponentSubmission;
+            const theirSub = isChallenger ? d.opponentSubmission : d.challengerSubmission;
+            if (d.status === "submitted" || (mySub && theirSub)) awaitingVerdict.push(d);
+            else if (!mySub) needsMySub.push(d);
+            else waitingOnOpp.push(d);
+          }
+
+          return (
           <div className="space-y-4">
             {duelError && (
               <div className="bg-red-50 text-red-600 text-xs p-2 rounded-lg">{duelError}</div>
             )}
 
-            {/* Resolved duels (history) */}
-            {duelData.resolvedDuels.length > 0 && (
+            {/* 1. NEEDS YOUR SUBMISSION — loudest call to action */}
+            {needsMySub.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Your duels</p>
-                {duelData.resolvedDuels.map((d) => {
-                  const won = d.winnerId === duelData.meId;
-                  const opp = d.challengerId === duelData.meId ? d.opponentName : d.challengerName;
-                  if (d.status === "void") {
-                    return (
-                      <div key={d.id} className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
-                        Duel vs {opp} — voided. Stake refunded.
-                      </div>
-                    );
-                  }
+                <p className="text-xs font-bold text-red-700 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  Needs your submission ({needsMySub.length})
+                </p>
+                {needsMySub.map((d) => {
+                  const isChallenger = d.challengerId === meId;
+                  const opp = isChallenger ? d.opponentName : d.challengerName;
+                  const text = duelSubmissionText[d.id] ?? "";
                   return (
-                    <div
-                      key={d.id}
-                      className={`rounded-lg p-3 text-sm ${won ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
-                    >
-                      {won ? "🏆 " : "💀 "}
-                      vs {opp} — {won ? `+${d.wagerAmount}` : `-${d.wagerAmount}`} pts
+                    <div key={d.id} className="border-2 border-red-300 bg-red-50/40 rounded-xl p-3 space-y-2">
+                      <p className="text-sm">
+                        vs <span className="font-semibold text-red-700">{opp}</span> · stake {d.wagerAmount} pts
+                      </p>
+                      <textarea
+                        value={text}
+                        onChange={(e) =>
+                          setDuelSubmissionText((prev) => ({ ...prev, [d.id]: e.target.value }))
+                        }
+                        rows={3}
+                        placeholder="Your answer or link…"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 resize-y outline-none focus:ring-2 focus:ring-red-400"
+                      />
+                      <button
+                        onClick={() => submitDuelEntry(d.id)}
+                        disabled={loading || !text.trim()}
+                        className="w-full py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 cursor-pointer"
+                      >
+                        {loading ? "Submitting…" : "Submit"}
+                      </button>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {/* Incoming invites */}
+            {/* 2. Incoming invites (you need to accept/decline) */}
             {duelData.incomingInvites.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">
@@ -1135,56 +1168,81 @@ export default function SideQuestPanel({
               </div>
             )}
 
-            {/* Active duels (accepted, awaiting submissions or admin) */}
-            {duelData.activeDuels.length > 0 && (
+            {/* 3. Outgoing pending challenges (you sent, waiting for opponent to accept) */}
+            {duelData.outgoingChallenges.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                  Sent — waiting for opponent
+                </p>
+                {duelData.outgoingChallenges.map((d) => (
+                  <div key={d.id} className="border border-amber-200 bg-amber-50/60 rounded-xl p-3">
+                    <p className="text-sm">
+                      vs <span className="font-semibold">{d.opponentName}</span> · stake {d.wagerAmount} pts
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Waiting for {d.opponentName} to accept or decline.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 4. Other in-progress duels (you submitted; waiting on opp / on admin) */}
+            {(waitingOnOpp.length > 0 || awaitingVerdict.length > 0) && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">In Progress</p>
-                {duelData.activeDuels.map((d) => {
-                  const isChallenger = d.challengerId === duelData.meId;
+                {waitingOnOpp.map((d) => {
+                  const isChallenger = d.challengerId === meId;
                   const opp = isChallenger ? d.opponentName : d.challengerName;
-                  const mySubmission = isChallenger ? d.challengerSubmission : d.opponentSubmission;
-                  const theirSubmission = isChallenger ? d.opponentSubmission : d.challengerSubmission;
+                  return (
+                    <div key={d.id} className="border border-gray-200 rounded-xl p-3 space-y-1">
+                      <p className="text-sm">
+                        vs <span className="font-semibold">{opp}</span> · stake {d.wagerAmount} pts
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        You&apos;re in. Waiting on {opp}.
+                      </p>
+                    </div>
+                  );
+                })}
+                {awaitingVerdict.map((d) => {
+                  const isChallenger = d.challengerId === meId;
+                  const opp = isChallenger ? d.opponentName : d.challengerName;
+                  return (
+                    <div key={d.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-1">
+                      <p className="text-sm">
+                        vs <span className="font-semibold">{opp}</span> · stake {d.wagerAmount} pts
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Both submitted. Waiting for admin verdict.
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-                  if (d.status === "submitted" || (mySubmission && theirSubmission)) {
+            {/* 5. Resolved duels (history) */}
+            {duelData.resolvedDuels.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">History</p>
+                {duelData.resolvedDuels.map((d) => {
+                  const won = d.winnerId === meId;
+                  const opp = d.challengerId === meId ? d.opponentName : d.challengerName;
+                  if (d.status === "void") {
                     return (
-                      <div key={d.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
-                        <p className="text-sm">
-                          vs <span className="font-semibold">{opp}</span> · stake {d.wagerAmount} pts
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Both submitted. Waiting for admin verdict.
-                        </p>
+                      <div key={d.id} className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
+                        Duel vs {opp} — voided. Stake refunded.
                       </div>
                     );
                   }
-
                   return (
-                    <div key={d.id} className="border border-red-200 rounded-xl p-3 space-y-2">
-                      <p className="text-sm">
-                        vs <span className="font-semibold text-red-700">{opp}</span> · stake {d.wagerAmount} pts
-                      </p>
-                      {mySubmission ? (
-                        <p className="text-xs text-gray-500">
-                          You&apos;re in. Waiting on {opp}.
-                        </p>
-                      ) : (
-                        <>
-                          <textarea
-                            value={duelSubmissionText}
-                            onChange={(e) => setDuelSubmissionText(e.target.value)}
-                            rows={3}
-                            placeholder="Your answer or link…"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 resize-y outline-none focus:ring-2 focus:ring-red-400"
-                          />
-                          <button
-                            onClick={() => submitDuelEntry(d.id)}
-                            disabled={loading || !duelSubmissionText.trim()}
-                            className="w-full py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 cursor-pointer"
-                          >
-                            {loading ? "Submitting…" : "Submit"}
-                          </button>
-                        </>
-                      )}
+                    <div
+                      key={d.id}
+                      className={`rounded-lg p-3 text-sm ${won ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
+                    >
+                      {won ? "🏆 " : "💀 "}
+                      vs {opp} — {won ? `+${d.wagerAmount}` : `-${d.wagerAmount}`} pts
                     </div>
                   );
                 })}
@@ -1251,7 +1309,8 @@ export default function SideQuestPanel({
               </p>
             )}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
