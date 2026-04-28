@@ -166,12 +166,12 @@ export default function ChallengesList({
               {c.status === "active" ? "Archive" : "Activate"}
             </button>
 
-            {(c.type === "task" || c.type === "quiz" || c.type === "bounty") && (
+            {(c.type === "task" || c.type === "quiz" || c.type === "bounty" || c.type === "wager") && (
               <button
                 onClick={() => onViewSubmissions(c.id, c.type)}
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#F5E6D3] text-[#8B7355] hover:bg-[#EADCC6] transition cursor-pointer"
               >
-                {c.type === "quiz" ? "View Attempts" : "View Submissions"}
+                {c.type === "quiz" || c.type === "wager" ? "View Attempts" : "View Submissions"}
               </button>
             )}
 
