@@ -40,7 +40,7 @@ interface QuizAttempt {
 interface SubmissionsModalProps {
   open: boolean;
   challengeId: number | null;
-  challengeType: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel" | null;
+  challengeType: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel" | null;
   onClose: () => void;
 }
 
@@ -489,7 +489,7 @@ export default function TaskSubmissionsModal({
             )}
 
             {/* ─── Streak (no submissions) ─── */}
-            {(challengeType === "streak" || challengeType === "speedrun" || challengeType === "checkin" || challengeType === "chain" || challengeType === "auction") && (
+            {(challengeType === "streak" || challengeType === "speedrun" || challengeType === "checkin" || challengeType === "chain") && (
               <p className="text-[#8B7355] text-center py-8">
                 {challengeType === "streak"
                   ? "Streak challenges are auto-completed based on attendance. No submissions to review."

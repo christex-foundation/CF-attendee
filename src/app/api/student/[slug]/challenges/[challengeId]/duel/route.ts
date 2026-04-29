@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { students, challenges, studentDuels } from "@/lib/db/schema";
 import { and, eq, or, sql, inArray } from "drizzle-orm";
 import { getStudentScore } from "@/lib/student-score";
+import { voidExpiredPendingDuels } from "@/lib/duel-sweeper";
 
 const MAX_DECLINES_PER_TEMPLATE = 2;
 const MAX_DUELS_PER_TEMPLATE = 3; // unified cap: combined participations as challenger + opponent
@@ -193,6 +194,10 @@ export async function GET(_request: NextRequest, { params }: Params) {
     if (!challenge || challenge.type !== "duel") {
       return NextResponse.json({ error: "Duel challenge not found" }, { status: 404 });
     }
+
+    // Auto-void pending duels whose challenge deadline has passed — frees both
+    // students' participation slots and surfaces the duel in History.
+    await voidExpiredPendingDuels(cid, challenge.deadline);
 
     const [student] = await db
       .select()

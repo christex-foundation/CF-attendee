@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { students, studentDuels } from "@/lib/db/schema";
+import { challenges, students, studentDuels } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
+import { voidExpiredPendingDuels } from "@/lib/duel-sweeper";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -11,6 +12,15 @@ export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const cid = parseInt(id, 10);
+
+    const [challenge] = await db
+      .select({ deadline: challenges.deadline })
+      .from(challenges)
+      .where(eq(challenges.id, cid))
+      .limit(1);
+    if (challenge) {
+      await voidExpiredPendingDuels(cid, challenge.deadline);
+    }
 
     const rows = await db
       .select()

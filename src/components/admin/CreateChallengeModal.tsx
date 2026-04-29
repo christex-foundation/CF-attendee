@@ -23,7 +23,7 @@ export default function CreateChallengeModal({
 }: CreateChallengeModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel">("quiz");
+  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel">("quiz");
   const [pointsReward, setPointsReward] = useState(10);
   const [badgeEmoji, setBadgeEmoji] = useState("");
   const [badgeName, setBadgeName] = useState("");
@@ -35,7 +35,6 @@ export default function CreateChallengeModal({
   const [wagerMin, setWagerMin] = useState(5);
   const [wagerMax, setWagerMax] = useState(50);
   const [chainRequired, setChainRequired] = useState(5);
-  const [auctionMinBid, setAuctionMinBid] = useState(10);
   const [questions, setQuestions] = useState<QuestionInput[]>([
     { questionText: "", options: ["", "", "", ""], correctIndex: 0 },
   ]);
@@ -137,10 +136,6 @@ export default function CreateChallengeModal({
         body.chainRequired = chainRequired;
       }
 
-      if (type === "auction") {
-        body.auctionMinBid = auctionMinBid;
-      }
-
       if (type !== "poll" && type !== "checkin" && isTimeBound && deadline) {
         body.deadline = new Date(deadline).toISOString();
       }
@@ -180,7 +175,6 @@ export default function CreateChallengeModal({
       setWagerMin(5);
       setWagerMax(50);
       setChainRequired(5);
-      setAuctionMinBid(10);
       setQuestions([
         { questionText: "", options: ["", "", "", ""], correctIndex: 0 },
       ]);
@@ -232,7 +226,6 @@ export default function CreateChallengeModal({
               <option value="wager">Wager - Bet points on a question</option>
               <option value="bounty">Bounty - First correct answer wins all</option>
               <option value="chain">Chain - Group relay, everyone wins</option>
-              <option value="auction">Auction - Bid points, highest wins</option>
               <option value="duel">Duel - Challenge a classmate head-to-head</option>
             </select>
           </div>
@@ -422,24 +415,6 @@ export default function CreateChallengeModal({
                 onChange={(e) => setChainRequired(parseInt(e.target.value) || 2)}
                 className={inputClass}
               />
-            </div>
-          )}
-
-          {type === "auction" && (
-            <div>
-              <label className={labelClass}>
-                Minimum Bid
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={auctionMinBid}
-                onChange={(e) => setAuctionMinBid(parseInt(e.target.value) || 1)}
-                className={inputClass}
-              />
-              <p className="text-xs text-[#8B7355]/70 mt-1">
-                Set a deadline — the highest bidder wins when time runs out.
-              </p>
             </div>
           )}
 

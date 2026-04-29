@@ -1,5 +1,5 @@
 export type AttendanceStatus = "present" | "absent";
-export type ChallengeType = "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel";
+export type ChallengeType = "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel";
 export type DuelStatus = "pending" | "accepted" | "declined" | "submitted" | "resolved" | "void";
 export type ChallengeStatus = "draft" | "active" | "archived";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
@@ -38,7 +38,6 @@ export interface Challenge {
   wagerMin: number | null;
   wagerMax: number | null;
   chainRequired: number | null;
-  auctionMinBid: number | null;
   deadline: string | null;
   decayEnabled: boolean;
   decayStartPoints: number;
@@ -88,9 +87,6 @@ export interface SideQuestNode {
   checkinWindowOpen?: boolean;
   checkinWindowEndsAt?: string;
   chainProgress?: number;
-  highestBid?: number;
-  highestBidder?: string;
-  studentBid?: number;
   pendingInviteCount?: number;
   bountyClaimed?: boolean;
   checkinWindowClosed?: boolean;

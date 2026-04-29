@@ -3,7 +3,7 @@
 interface SideQuestNodeProps {
   cx: number;
   cy: number;
-  type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel";
+  type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel";
   completed: boolean;
   expired?: boolean;
   badgeEmoji: string | null;
@@ -84,14 +84,6 @@ const typeConfigs = {
     gradDark: "#7E22CE",
     stroke: "#6B21A8",
     label: "⛓",
-  },
-  auction: {
-    outer: "#FCD34D",
-    fill: "#CA8A04",
-    gradLight: "#FEF08A",
-    gradDark: "#A16207",
-    stroke: "#854D0E",
-    label: "$",
   },
   duel: {
     outer: "#F87171",

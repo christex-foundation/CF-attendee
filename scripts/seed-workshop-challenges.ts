@@ -30,7 +30,6 @@ interface ChallengeInput {
   checkinWindowSeconds?: number;
   wagerMin?: number;
   wagerMax?: number;
-  auctionMinBid?: number;
   decayEnabled?: boolean;
   decayStartPoints?: number;
   decayPointsPerInterval?: number;
@@ -370,21 +369,6 @@ const SEED: ChallengeInput[] = [
   },
 
   {
-    title: "Stack Review Slot",
-    description: [
-      "Bid points for a 30-minute 1:1 walkthrough of YOUR product idea.",
-      "",
-      "We'll go through Part 3's research template — Product / Users / Features / Platform / Constraints / Options / Best / Why — and pick a stack together.",
-      "",
-      "Highest bidder when the timer runs out wins and pays the bid. One slot only.",
-    ].join("\n"),
-    type: "auction",
-    pointsReward: 0,
-    auctionMinBid: 10,
-    deadline: SESSION_DEADLINE,
-  },
-
-  {
     title: "Defend Your Stack",
     description: [
       "Challenge a classmate. The prompt is the same for both of you:",
@@ -442,7 +426,6 @@ async function seed() {
           c.type === "wager" || c.type === "duel" ? c.wagerMin ?? null : null,
         wagerMax:
           c.type === "wager" || c.type === "duel" ? c.wagerMax ?? null : null,
-        auctionMinBid: c.type === "auction" ? c.auctionMinBid ?? null : null,
         deadline: c.deadline ?? null,
         decayEnabled: c.decayEnabled ?? false,
         decayStartPoints: c.decayStartPoints ?? 40,

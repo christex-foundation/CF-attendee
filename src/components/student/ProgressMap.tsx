@@ -424,8 +424,9 @@ export default function ProgressMap({
                       type={sq.challenge.type}
                       completed={sq.progress?.completed ?? false}
                       expired={
-                        !!sq.challenge.deadline &&
-                        new Date(sq.challenge.deadline) < new Date()
+                        (!!sq.challenge.deadline &&
+                          new Date(sq.challenge.deadline) < new Date()) ||
+                        (sq.challenge.type === "checkin" && !!sq.checkinWindowClosed)
                       }
                       badgeEmoji={sq.challenge.badgeEmoji}
                       pointsReward={sq.challenge.pointsReward}
@@ -537,9 +538,6 @@ export default function ProgressMap({
           checkinWindowOpen={activeQuest.checkinWindowOpen}
           checkinWindowEndsAt={activeQuest.checkinWindowEndsAt}
           chainProgress={activeQuest.chainProgress}
-          highestBid={activeQuest.highestBid}
-          highestBidder={activeQuest.highestBidder}
-          studentBid={activeQuest.studentBid}
           bountyClaimed={activeQuest.bountyClaimed}
         />
       )}

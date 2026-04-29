@@ -25,7 +25,6 @@ export const challengeTypeEnum = pgEnum("challenge_type", [
   "wager",
   "bounty",
   "chain",
-  "auction",
   "duel",
 ]);
 
@@ -102,7 +101,6 @@ export const challenges = pgTable("challenges", {
   wagerMin: integer("wager_min"),
   wagerMax: integer("wager_max"),
   chainRequired: integer("chain_required"),
-  auctionMinBid: integer("auction_min_bid"),
   deadline: timestamp("deadline"),
   decayEnabled: boolean("decay_enabled").notNull().default(false),
   decayStartPoints: integer("decay_start_points").notNull().default(40),
@@ -186,18 +184,6 @@ export const taskSubmissions = pgTable("task_submissions", {
   pointsSnapshot: integer("points_snapshot"),
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
   reviewedAt: timestamp("reviewed_at"),
-});
-
-export const auctionBids = pgTable("auction_bids", {
-  id: serial("id").primaryKey(),
-  studentId: integer("student_id")
-    .notNull()
-    .references(() => students.id, { onDelete: "cascade" }),
-  challengeId: integer("challenge_id")
-    .notNull()
-    .references(() => challenges.id, { onDelete: "cascade" }),
-  amount: integer("amount").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const studentDuels = pgTable(

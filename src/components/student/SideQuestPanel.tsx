@@ -11,7 +11,7 @@ interface SideQuestPanelProps {
     id: number;
     title: string;
     description: string;
-    type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel";
+    type: "quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel";
     pointsReward: number;
     badgeEmoji: string | null;
     badgeName: string | null;
@@ -22,7 +22,6 @@ interface SideQuestPanelProps {
     wagerMin: number | null;
     wagerMax: number | null;
     chainRequired: number | null;
-    auctionMinBid: number | null;
     deadline: string | null;
     decayEnabled: boolean;
     decayStartPoints: number;
@@ -38,9 +37,6 @@ interface SideQuestPanelProps {
   checkinWindowOpen?: boolean;
   checkinWindowEndsAt?: string;
   chainProgress?: number;
-  highestBid?: number;
-  highestBidder?: string;
-  studentBid?: number;
   bountyClaimed?: boolean;
 }
 
@@ -93,7 +89,6 @@ const typeBadge = {
   wager: { bg: "bg-pink-100", text: "text-pink-700", label: "Wager" },
   bounty: { bg: "bg-lime-100", text: "text-lime-700", label: "Bounty" },
   chain: { bg: "bg-violet-100", text: "text-violet-700", label: "Chain" },
-  auction: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Auction" },
   duel: { bg: "bg-red-100", text: "text-red-700", label: "Duel" },
 };
 
@@ -110,9 +105,6 @@ export default function SideQuestPanel({
   checkinWindowOpen,
   checkinWindowEndsAt,
   chainProgress,
-  highestBid,
-  highestBidder,
-  studentBid,
   bountyClaimed,
 }: SideQuestPanelProps) {
   const [questions, setQuestions] = useState<QuizQ[]>([]);
@@ -131,9 +123,6 @@ export default function SideQuestPanel({
   const [bountyText, setBountyText] = useState("");
   const [bountySubmitted, setBountySubmitted] = useState(false);
   const [chainResult, setChainResult] = useState<{ linkNumber: number; chainComplete: boolean } | null>(null);
-  const [bidAmount, setBidAmount] = useState(0);
-  const [bidPlaced, setBidPlaced] = useState(false);
-  const [auctionData, setAuctionData] = useState<{ highestBid: number; highestBidder: string; currentScore: number } | null>(null);
   const [duelData, setDuelData] = useState<DuelStateResponse | null>(null);
   const [duelStakeAmount, setDuelStakeAmount] = useState(0);
   const [duelOpponentSlug, setDuelOpponentSlug] = useState("");
@@ -168,14 +157,6 @@ export default function SideQuestPanel({
           setWagerAmount(data.wagerMin);
         });
     }
-    if (open && challenge.type === "auction" && !completed) {
-      fetch(`/api/student/${studentSlug}/challenges/${challenge.id}/auction`)
-        .then((r) => r.json())
-        .then((data) => {
-          setAuctionData({ highestBid: data.highestBid, highestBidder: data.highestBidder, currentScore: data.currentScore });
-          setBidAmount(Math.max(data.auctionMinBid, (data.highestBid || 0) + 1));
-        });
-    }
     if (open && challenge.type === "duel") {
       fetch(`/api/student/${studentSlug}/challenges/${challenge.id}/duel`)
         .then((r) => r.json())
@@ -199,7 +180,6 @@ export default function SideQuestPanel({
     setBountyText("");
     setBountySubmitted(false);
     setChainResult(null);
-    setBidPlaced(false);
     setDuelOpponentSlug("");
     setDuelSubmissionText({});
     setDuelError("");
@@ -452,28 +432,6 @@ export default function SideQuestPanel({
         return next;
       });
       await refreshDuel();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function placeBid() {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/student/${studentSlug}/challenges/${challenge.id}/auction`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: bidAmount }),
-        }
-      );
-      if (res.ok) {
-        setBidPlaced(true);
-        if (auctionData) {
-          setAuctionData({ ...auctionData, highestBid: bidAmount });
-        }
-      }
     } finally {
       setLoading(false);
     }
@@ -1012,60 +970,6 @@ export default function SideQuestPanel({
           </div>
         )}
 
-        {/* Auction */}
-        {challenge.type === "auction" && !completed && (
-          <div className="space-y-4">
-            {bidPlaced ? (
-              <div className="text-center py-4">
-                <div className="text-3xl mb-2">🏷️</div>
-                <p className="text-lg font-bold text-yellow-600">Bid placed!</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Your bid: {bidAmount} pts. Highest bidder wins when the auction ends.
-                </p>
-              </div>
-            ) : (
-              <>
-                {auctionData && (
-                  <div className="space-y-3">
-                    <div className="bg-yellow-50 rounded-xl p-3 text-center">
-                      <p className="text-xs text-yellow-600 font-medium">Current highest bid</p>
-                      <p className="text-2xl font-bold text-yellow-700">
-                        {auctionData.highestBid > 0 ? `${auctionData.highestBid} pts` : "No bids yet"}
-                      </p>
-                      {auctionData.highestBidder && (
-                        <p className="text-xs text-yellow-600">by {auctionData.highestBidder}</p>
-                      )}
-                    </div>
-                    {(studentBid ?? 0) > 0 && (
-                      <p className="text-xs text-center text-gray-500">Your current bid: {studentBid} pts</p>
-                    )}
-                    <div className="space-y-1">
-                      <label className="block text-sm font-medium text-gray-700">Your bid</label>
-                      <input
-                        type="number"
-                        min={Math.max(challenge.auctionMinBid ?? 1, (auctionData.highestBid || 0) + 1)}
-                        max={auctionData.currentScore}
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none text-gray-800"
-                      />
-                      <p className="text-xs text-gray-400">
-                        Your score: {auctionData.currentScore} pts. Winner pays their bid.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <button
-                  onClick={placeBid}
-                  disabled={loading || !auctionData || bidAmount <= (auctionData?.highestBid ?? 0) || bidAmount > (auctionData?.currentScore ?? 0)}
-                  className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition disabled:opacity-50 cursor-pointer"
-                >
-                  {loading ? "Placing bid..." : `Bid ${bidAmount} pts`}
-                </button>
-              </>
-            )}
-          </div>
-        )}
 
         {/* Duel */}
         {challenge.type === "duel" && duelData && (() => {

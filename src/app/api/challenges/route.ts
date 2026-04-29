@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
       wagerMin,
       wagerMax,
       chainRequired,
-      auctionMinBid,
       questions,
       deadline,
       decayEnabled,
@@ -104,13 +103,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (type === "auction" && (!auctionMinBid || auctionMinBid < 1)) {
-      return NextResponse.json(
-        { error: "auctionMinBid must be >= 1 for auction challenges" },
-        { status: 400 }
-      );
-    }
-
     if (type === "duel") {
       if (!wagerMin || !wagerMax || wagerMin < 1 || wagerMax < wagerMin) {
         return NextResponse.json(
@@ -138,7 +130,6 @@ export async function POST(request: NextRequest) {
         wagerMin: type === "wager" || type === "duel" ? wagerMin : null,
         wagerMax: type === "wager" || type === "duel" ? wagerMax : null,
         chainRequired: type === "chain" ? chainRequired : null,
-        auctionMinBid: type === "auction" ? auctionMinBid : null,
         deadline: deadline ? new Date(deadline) : null,
         decayEnabled: decayEnabled ?? false,
         decayStartPoints: decayEnabled ? (decayStartPoints ?? 40) : 40,

@@ -63,7 +63,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
         ...(body.wagerMin !== undefined && { wagerMin: body.wagerMin }),
         ...(body.wagerMax !== undefined && { wagerMax: body.wagerMax }),
         ...(body.chainRequired !== undefined && { chainRequired: body.chainRequired }),
-        ...(body.auctionMinBid !== undefined && { auctionMinBid: body.auctionMinBid }),
         ...(body.deadline !== undefined && { deadline: body.deadline ? new Date(body.deadline) : null }),
         ...(body.decayEnabled !== undefined && { decayEnabled: body.decayEnabled }),
         ...(body.decayStartPoints !== undefined && { decayStartPoints: body.decayStartPoints }),

@@ -26,7 +26,7 @@ export default function EditChallengeModal({
 }: EditChallengeModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel">("quiz");
+  const [type, setType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel">("quiz");
   const [pointsReward, setPointsReward] = useState(10);
   const [badgeEmoji, setBadgeEmoji] = useState("");
   const [badgeName, setBadgeName] = useState("");
@@ -38,7 +38,6 @@ export default function EditChallengeModal({
   const [wagerMin, setWagerMin] = useState(5);
   const [wagerMax, setWagerMax] = useState(50);
   const [chainRequired, setChainRequired] = useState(5);
-  const [auctionMinBid, setAuctionMinBid] = useState(10);
   const [questions, setQuestions] = useState<QuestionInput[]>([]);
   const [isTimeBound, setIsTimeBound] = useState(false);
   const [deadline, setDeadline] = useState("");
@@ -67,7 +66,6 @@ export default function EditChallengeModal({
     setWagerMin(challenge.wagerMin || 5);
     setWagerMax(challenge.wagerMax || 50);
     setChainRequired(challenge.chainRequired || 5);
-    setAuctionMinBid(challenge.auctionMinBid || 10);
     setIsTimeBound(!!challenge.deadline);
     setDeadline(challenge.deadline ? new Date(challenge.deadline).toISOString().slice(0, 16) : "");
     setDecayEnabled(challenge.decayEnabled ?? false);
@@ -188,10 +186,6 @@ export default function EditChallengeModal({
         body.chainRequired = chainRequired;
       }
 
-      if (type === "auction") {
-        body.auctionMinBid = auctionMinBid;
-      }
-
       body.deadline = isTimeBound && deadline ? new Date(deadline).toISOString() : null;
       body.decayEnabled = decayEnabled;
       if (decayEnabled) {
@@ -244,7 +238,7 @@ export default function EditChallengeModal({
             <div>
               <label className={labelClass}>Type</label>
               <div className={`${inputClass} bg-[#F5F0EB] text-[#8B7355] cursor-not-allowed`}>
-                {{ quiz: "Quiz", task: "Task", streak: "Streak", poll: "Poll", speedrun: "Speed Run", checkin: "Check-in", wager: "Wager", bounty: "Bounty", chain: "Chain", auction: "Auction", duel: "Duel" }[type]}
+                {{ quiz: "Quiz", task: "Task", streak: "Streak", poll: "Poll", speedrun: "Speed Run", checkin: "Check-in", wager: "Wager", bounty: "Bounty", chain: "Chain", duel: "Duel" }[type]}
               </div>
             </div>
 

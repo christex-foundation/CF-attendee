@@ -18,6 +18,19 @@ import type { Student, Challenge, AttendanceRecordWithStudent } from "@/types";
 
 type Tab = "students" | "challenges" | "attendance";
 
+function isChallengeExpired(c: Challenge): boolean {
+  const now = Date.now();
+  if (c.deadline && new Date(c.deadline).getTime() < now) return true;
+  if (
+    c.type === "checkin" &&
+    c.checkinActivatedAt &&
+    new Date(c.checkinActivatedAt).getTime() + (c.checkinWindowSeconds ?? 300) * 1000 < now
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -30,7 +43,7 @@ export default function DashboardPage() {
   const [showAttendance, setShowAttendance] = useState(false);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [submissionsChallengeId, setSubmissionsChallengeId] = useState<number | null>(null);
-  const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "auction" | "duel" | null>(null);
+  const [submissionsChallengeType, setSubmissionsChallengeType] = useState<"quiz" | "task" | "streak" | "poll" | "speedrun" | "checkin" | "wager" | "bounty" | "chain" | "duel" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [pointsStudent, setPointsStudent] = useState<{ id: number; name: string } | null>(null);
   const [editStudent, setEditStudent] = useState<{ id: number; name: string; slug?: string; avatarUrl?: string | null } | null>(null);
@@ -130,7 +143,7 @@ export default function DashboardPage() {
         <StatCard label="Students" value={students.length} color="bg-[#F5E6D3]" />
         <StatCard label="Sessions" value={totalSessions} color="bg-[#E3F2FD]" />
         <StatCard label="Challenges" value={challenges.length} color="bg-[#E8F5E9]" />
-        <StatCard label="Active" value={challenges.filter(c => c.status === "active").length} color="bg-[#FFF8E1]" />
+        <StatCard label="Active" value={challenges.filter(c => c.status === "active" && !isChallengeExpired(c)).length} color="bg-[#FFF8E1]" />
         <StatCard label="Archived" value={challenges.filter(c => c.status === "archived").length} color="bg-[#F3E5F5]" />
       </div>
 

@@ -6,9 +6,8 @@ import {
   studentChallengeProgress,
   attendance,
   taskSubmissions,
-  auctionBids,
 } from "@/lib/db/schema";
-import { eq, and, asc, desc, sql } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 
 interface Params {
   params: Promise<{ slug: string }>;
@@ -149,38 +148,6 @@ export async function GET(_request: NextRequest, { params }: Params) {
       }
     }
 
-    // Compute auction highest bids
-    const auctionMap = new Map<number, { highestBid: number; highestBidder: string; studentBid: number }>();
-    for (const c of activeChallenges) {
-      if (c.type === "auction") {
-        const [highest] = await db
-          .select({ amount: auctionBids.amount, studentId: auctionBids.studentId })
-          .from(auctionBids)
-          .where(eq(auctionBids.challengeId, c.id))
-          .orderBy(desc(auctionBids.amount))
-          .limit(1);
-
-        let bidderName = "";
-        if (highest) {
-          const [bidder] = await db.select({ name: students.name }).from(students).where(eq(students.id, highest.studentId)).limit(1);
-          bidderName = bidder?.name ?? "";
-        }
-
-        const [myBid] = await db
-          .select({ amount: auctionBids.amount })
-          .from(auctionBids)
-          .where(and(eq(auctionBids.challengeId, c.id), eq(auctionBids.studentId, student.id)))
-          .orderBy(desc(auctionBids.amount))
-          .limit(1);
-
-        auctionMap.set(c.id, {
-          highestBid: highest?.amount ?? 0,
-          highestBidder: bidderName,
-          studentBid: myBid?.amount ?? 0,
-        });
-      }
-    }
-
     const sideQuests = activeChallenges.map((c) => {
       let checkinWindowOpen = false;
       let checkinWindowEndsAt: string | undefined;
@@ -200,7 +167,6 @@ export async function GET(_request: NextRequest, { params }: Params) {
         ...(c.type === "speedrun" && { slotsRemaining: slotsMap.get(c.id) ?? 0 }),
         ...(c.type === "checkin" && { checkinWindowOpen, checkinWindowEndsAt }),
         ...(c.type === "chain" && { chainProgress: chainMap.get(c.id) ?? 0 }),
-        ...(c.type === "auction" && auctionMap.get(c.id)),
       };
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import type { Challenge } from "@/types";
 
@@ -10,6 +10,21 @@ interface ChallengesListProps {
   onViewSubmissions: (challengeId: number, challengeType: Challenge["type"]) => void;
   onCreateChallenge: () => void;
   onEditChallenge: (challenge: Challenge) => void;
+}
+
+type StatusFilter = "all" | "open" | "expired" | "draft" | "archived";
+type TypeFilter = "all" | Challenge["type"];
+
+function isExpired(c: Challenge, now: number): boolean {
+  if (c.deadline !== null && new Date(c.deadline).getTime() < now) return true;
+  if (
+    c.type === "checkin" &&
+    c.checkinActivatedAt &&
+    new Date(c.checkinActivatedAt).getTime() + (c.checkinWindowSeconds ?? 300) * 1000 < now
+  ) {
+    return true;
+  }
+  return false;
 }
 
 const typeBadge = {
@@ -22,7 +37,6 @@ const typeBadge = {
   wager: { bg: "bg-pink-50 text-pink-700 border-pink-200", label: "Wager" },
   bounty: { bg: "bg-lime-50 text-lime-700 border-lime-200", label: "Bounty" },
   chain: { bg: "bg-violet-50 text-violet-700 border-violet-200", label: "Chain" },
-  auction: { bg: "bg-yellow-50 text-yellow-700 border-yellow-200", label: "Auction" },
   duel: { bg: "bg-red-50 text-red-700 border-red-200", label: "Duel" },
 };
 
@@ -41,17 +55,45 @@ export default function ChallengesList({
 }: ChallengesListProps) {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Challenge | null>(null);
-  const [settlingAuction, setSettlingAuction] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
-  async function settleAuction(challengeId: number) {
-    setSettlingAuction(challengeId);
-    try {
-      await fetch(`/api/challenges/${challengeId}/settle-auction`, { method: "POST" });
-      onRefresh();
-    } finally {
-      setSettlingAuction(null);
+  const counts = useMemo(() => {
+    const now = Date.now();
+    const c = { all: challenges.length, open: 0, expired: 0, draft: 0, archived: 0 };
+    for (const ch of challenges) {
+      if (ch.status === "draft") c.draft += 1;
+      else if (ch.status === "archived") c.archived += 1;
+      else if (ch.status === "active") {
+        if (isExpired(ch, now)) c.expired += 1;
+        else c.open += 1;
+      }
     }
-  }
+    return c;
+  }, [challenges]);
+
+  const visibleTypes = useMemo(() => {
+    const set = new Set<Challenge["type"]>();
+    for (const ch of challenges) set.add(ch.type);
+    return Array.from(set);
+  }, [challenges]);
+
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    return challenges.filter((c) => {
+      if (statusFilter === "open") {
+        if (c.status !== "active" || isExpired(c, now)) return false;
+      } else if (statusFilter === "expired") {
+        if (c.status !== "active" || !isExpired(c, now)) return false;
+      } else if (statusFilter === "draft") {
+        if (c.status !== "draft") return false;
+      } else if (statusFilter === "archived") {
+        if (c.status !== "archived") return false;
+      }
+      if (typeFilter !== "all" && c.type !== typeFilter) return false;
+      return true;
+    });
+  }, [challenges, statusFilter, typeFilter]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -90,10 +132,77 @@ export default function ChallengesList({
     );
   }
 
+  const statusPills: { key: StatusFilter; label: string; count: number }[] = [
+    { key: "open", label: "Open", count: counts.open },
+    { key: "expired", label: "Expired", count: counts.expired },
+    { key: "draft", label: "Draft", count: counts.draft },
+    { key: "archived", label: "Archived", count: counts.archived },
+    { key: "all", label: "All", count: counts.all },
+  ];
+
   return (
     <>
+    {/* Filter bar */}
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex gap-1 bg-[#F5F0EB] rounded-xl p-1">
+        {statusPills.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setStatusFilter(p.key)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
+              statusFilter === p.key
+                ? "bg-white text-[#1A1A1A] shadow-sm"
+                : "text-[#8B7355] hover:text-[#1A1A1A]"
+            }`}
+          >
+            {p.label}
+            <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
+              statusFilter === p.key ? "bg-[#1A1A1A] text-white" : "bg-[#E8E0D8] text-[#8B7355]"
+            }`}>
+              {p.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <select
+        value={typeFilter}
+        onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#F5F0EB] text-[#1A1A1A] border border-transparent hover:bg-[#E8E0D8] transition cursor-pointer"
+      >
+        <option value="all">All types</option>
+        {visibleTypes.map((t) => (
+          <option key={t} value={t}>{typeBadge[t].label}</option>
+        ))}
+      </select>
+
+      {(statusFilter !== "open" || typeFilter !== "all") && (
+        <button
+          onClick={() => { setStatusFilter("open"); setTypeFilter("all"); }}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg text-[#8B7355] hover:text-[#1A1A1A] hover:bg-[#F5F0EB] transition cursor-pointer"
+        >
+          Reset
+        </button>
+      )}
+
+      <span className="ml-auto text-xs text-[#8B7355]">
+        {filtered.length} of {challenges.length}
+      </span>
+    </div>
+
+    {filtered.length === 0 ? (
+      <div className="text-center py-16 bg-white rounded-2xl border border-[#E8E0D8]">
+        <p className="text-[#8B7355] text-sm mb-3">No challenges match this filter.</p>
+        <button
+          onClick={() => { setStatusFilter("all"); setTypeFilter("all"); }}
+          className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#F5F0EB] text-[#1A1A1A] hover:bg-[#E8E0D8] transition cursor-pointer"
+        >
+          Show all challenges
+        </button>
+      </div>
+    ) : (
     <div className="space-y-3">
-      {challenges.map((c) => (
+      {filtered.map((c) => (
         <div
           key={c.id}
           className="bg-white rounded-2xl border border-[#E8E0D8] p-4 hover:shadow-sm transition"
@@ -112,6 +221,11 @@ export default function ChallengesList({
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${statusBadge[c.status]}`}>
                   {c.status}
                 </span>
+                {c.status === "active" && isExpired(c, Date.now()) && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 bg-orange-50 text-orange-700 border-orange-200">
+                    expired
+                  </span>
+                )}
               </div>
               <p className="text-sm text-[#8B7355] mt-0.5 line-clamp-1">
                 {c.description}
@@ -140,9 +254,6 @@ export default function ChallengesList({
             )}
             {c.type === "chain" && c.chainRequired && (
               <span>{c.chainRequired} links needed</span>
-            )}
-            {c.type === "auction" && c.auctionMinBid && (
-              <span>Min bid: {c.auctionMinBid} pts</span>
             )}
             {c.type === "duel" && c.wagerMin != null && (
               <span>Stake: {c.wagerMin}–{c.wagerMax} pts</span>
@@ -193,16 +304,6 @@ export default function ChallengesList({
               </button>
             )}
 
-            {c.type === "auction" && c.status === "active" && (
-              <button
-                onClick={() => settleAuction(c.id)}
-                disabled={settlingAuction === c.id}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition cursor-pointer disabled:opacity-50"
-              >
-                {settlingAuction === c.id ? "Settling..." : "Settle Auction"}
-              </button>
-            )}
-
             {c.type === "checkin" && c.checkinActivatedAt && (
               <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-sky-50 text-sky-700">
                 {new Date(c.checkinActivatedAt) > new Date()
@@ -222,6 +323,7 @@ export default function ChallengesList({
         </div>
       ))}
     </div>
+    )}
     <ConfirmDialog
       open={deleteTarget !== null}
       title="Delete Challenge"

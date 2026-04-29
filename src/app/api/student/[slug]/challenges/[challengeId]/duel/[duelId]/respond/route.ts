@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { students, studentDuels } from "@/lib/db/schema";
+import { challenges, students, studentDuels } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { getStudentScore } from "@/lib/student-score";
+import { voidExpiredPendingDuels } from "@/lib/duel-sweeper";
 
 const MAX_DECLINES_PER_TEMPLATE = 2;
 
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       .limit(1);
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    const [challenge] = await db
+      .select({ deadline: challenges.deadline })
+      .from(challenges)
+      .where(eq(challenges.id, cid))
+      .limit(1);
+    if (challenge) {
+      await voidExpiredPendingDuels(cid, challenge.deadline);
     }
 
     const [duel] = await db

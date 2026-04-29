@@ -50,6 +50,13 @@
       "when": 1777234519154,
       "tag": "0006_add_duels",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777460626748,
+      "tag": "0007_known_stature",
+      "breakpoints": true
     }
   ]
 }

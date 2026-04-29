@@ -5,9 +5,8 @@ import {
   challenges,
   studentChallengeProgress,
   taskSubmissions,
-  auctionBids,
 } from "@/lib/db/schema";
-import { eq, asc, and, desc, max, sql, inArray } from "drizzle-orm";
+import { eq, asc, and, max, sql, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import StudentMapClient from "./client";
 
@@ -161,7 +160,6 @@ export default async function StudentPage({ params }: Props) {
       wagerMin: c.wagerMin ?? null,
       wagerMax: c.wagerMax ?? null,
       chainRequired: c.chainRequired ?? null,
-      auctionMinBid: c.auctionMinBid ?? null,
       deadline: c.deadline?.toISOString() ?? null,
       decayEnabled: c.decayEnabled,
       decayStartPoints: c.decayStartPoints,
