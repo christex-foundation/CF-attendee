@@ -109,7 +109,7 @@ export default function SideQuestPanel({
 }: SideQuestPanelProps) {
   const [questions, setQuestions] = useState<QuizQ[]>([]);
   const [answers, setAnswers] = useState<number[]>([]);
-  const [result, setResult] = useState<{ score: number; total: number; passed: boolean } | null>(null);
+  const [result, setResult] = useState<{ score: number; total: number; passed: boolean; pointsEarned: number } | null>(null);
   const [taskText, setTaskText] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -566,12 +566,18 @@ export default function SideQuestPanel({
                 </p>
                 <p
                   className={`text-sm font-semibold mt-1 ${
-                    result.passed ? "text-green-600" : "text-red-500"
+                    result.passed
+                      ? "text-green-600"
+                      : result.pointsEarned > 0
+                        ? "text-purple-600"
+                        : "text-red-500"
                   }`}
                 >
                   {result.passed
-                    ? "Passed! Badge earned!"
-                    : "Not quite — this quest is now closed."}
+                    ? `Perfect! +${result.pointsEarned} pts — badge earned!`
+                    : result.pointsEarned > 0
+                      ? `+${result.pointsEarned} pts. This quest is now closed.`
+                      : "Zero this round — this quest is now closed."}
                 </p>
               </div>
             ) : (

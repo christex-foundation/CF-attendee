@@ -132,9 +132,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const total = questions.length;
-    const passed = score === total; // Must get all correct to pass
+    const passed = score === total; // Full mastery; gates badge
 
-    // Save attempt
     await db.insert(quizAttempts).values({
       studentId: student.id,
       challengeId: cid,
@@ -144,14 +143,13 @@ export async function POST(request: NextRequest, { params }: Params) {
       passed,
     });
 
-    // One-shot: always mark progress complete after first attempt.
-    // Points/badge only awarded if passed.
-    let earnedPoints = 0;
-    if (passed) {
-      earnedPoints = challenge.decayEnabled
-        ? computeDecayedPoints(challenge)
-        : challenge.pointsReward;
-    }
+    // Proportional scoring: each question is worth pointsReward/total.
+    // Round to nearest; a perfect score always yields the full pointsReward.
+    const baseReward = challenge.decayEnabled
+      ? computeDecayedPoints(challenge)
+      : challenge.pointsReward;
+    const earnedPoints =
+      total > 0 ? Math.round((score / total) * baseReward) : 0;
     const badgeEarned = passed && !!challenge.badgeName;
 
     await db
@@ -177,7 +175,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
       });
 
-    return NextResponse.json({ score, total, passed });
+    return NextResponse.json({ score, total, passed, pointsEarned: earnedPoints });
   } catch {
     return NextResponse.json(
       { error: "Failed to submit quiz" },
