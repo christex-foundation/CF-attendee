@@ -10,7 +10,9 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed:workshop": "tsx --env-file=.env.local scripts/seed-workshop-challenges.ts"
+    "seed:workshop": "tsx --env-file=.env.local scripts/seed-workshop-challenges.ts",
+    "seed:ai-poc": "tsx --env-file=.env.local scripts/seed-ai-poc-challenges.ts",
+    "seed:hard-quizzes": "tsx --env-file=.env scripts/seed-hard-research-quizzes.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
