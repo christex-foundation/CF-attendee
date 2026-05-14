@@ -273,7 +273,7 @@ export default function DashboardPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <IconBtn onClick={() => setEditStudent({ id: student.id, name: student.name, slug: student.slug, avatarUrl: student.avatarUrl })} title="Edit" icon={<EditIcon />} />
-                            <IconBtn onClick={() => setPointsStudent({ id: student.id, name: student.name })} title="Add Points" icon={<PointsIcon />} />
+                            <IconBtn onClick={() => setPointsStudent({ id: student.id, name: student.name })} title="Adjust Points" icon={<PointsIcon />} />
                             <IconBtn onClick={() => copyLink(student.slug)} title={copied === student.slug ? "Copied!" : "Copy Link"} icon={copied === student.slug ? <CheckIcon /> : <LinkIcon />} />
                             <IconBtn
                               onClick={() => handleDeleteStudent(student.id, student.name)}
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-1.5 border-t border-[#F5F0EB] pt-3">
                       <IconBtn onClick={() => setEditStudent({ id: student.id, name: student.name, slug: student.slug, avatarUrl: student.avatarUrl })} title="Edit" icon={<EditIcon />} />
-                      <IconBtn onClick={() => setPointsStudent({ id: student.id, name: student.name })} title="Add Points" icon={<PointsIcon />} />
+                      <IconBtn onClick={() => setPointsStudent({ id: student.id, name: student.name })} title="Adjust Points" icon={<PointsIcon />} />
                       <IconBtn onClick={() => copyLink(student.slug)} title={copied === student.slug ? "Copied!" : "Copy Link"} icon={copied === student.slug ? <CheckIcon /> : <LinkIcon />} />
                       <div className="ml-auto">
                         <IconBtn

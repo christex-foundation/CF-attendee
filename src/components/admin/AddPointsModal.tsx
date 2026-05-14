@@ -9,6 +9,8 @@ interface AddPointsModalProps {
   onAdded: () => void;
 }
 
+type Direction = "add" | "deduct";
+
 export default function AddPointsModal({
   open,
   student,
@@ -17,10 +19,15 @@ export default function AddPointsModal({
 }: AddPointsModalProps) {
   const [points, setPoints] = useState("");
   const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<Direction | null>(null);
   const [error, setError] = useState("");
 
-  const handleClose = useCallback(() => onClose(), [onClose]);
+  const handleClose = useCallback(() => {
+    setPoints("");
+    setReason("");
+    setError("");
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -32,27 +39,28 @@ export default function AddPointsModal({
 
   if (!open || !student) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(direction: Direction) {
     setError("");
 
-    const pointsNum = parseInt(points, 10);
-    if (isNaN(pointsNum) || pointsNum === 0) {
-      setError("Please enter a valid non-zero number");
+    const magnitude = parseInt(points, 10);
+    if (isNaN(magnitude) || magnitude <= 0) {
+      setError("Enter a positive number, then click Add or Deduct.");
       return;
     }
 
-    setLoading(true);
+    const signed = direction === "add" ? magnitude : -magnitude;
+
+    setLoading(direction);
     try {
       const res = await fetch(`/api/students/${student!.id}/points`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ points: pointsNum, reason }),
+        body: JSON.stringify({ points: signed, reason }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to add points");
+        setError(data.error || "Failed to update points");
         return;
       }
 
@@ -63,19 +71,25 @@ export default function AddPointsModal({
     } catch {
       setError("Something went wrong");
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 w-full sm:max-w-md sm:mx-4 animate-slide-up sm:animate-none">
-        <h2 className="text-xl font-bold text-[#1A1A1A] mb-1">Add Points</h2>
+        <h2 className="text-xl font-bold text-[#1A1A1A] mb-1">Adjust Points</h2>
         <p className="text-sm text-[#8B7355] mb-4">
-          Manually add or deduct points for <span className="font-semibold text-[#1A1A1A]">{student.name}</span>
+          Add or deduct points for <span className="font-semibold text-[#1A1A1A]">{student.name}</span>
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit("add");
+          }}
+          className="space-y-4"
+        >
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl">
               {error}
@@ -83,57 +97,63 @@ export default function AddPointsModal({
           )}
 
           <div>
-            <label htmlFor="add-points-value" className="block text-sm font-medium text-[#8B7355] mb-1">
-              Points
+            <label htmlFor="adjust-points-value" className="block text-sm font-medium text-[#8B7355] mb-1">
+              Amount
             </label>
             <input
-              id="add-points-value"
+              id="adjust-points-value"
               type="number"
+              min={1}
+              step={1}
               value={points}
               onChange={(e) => setPoints(e.target.value)}
               required
               className="w-full px-4 py-3 border border-[#E8E0D8] rounded-xl focus:ring-2 focus:ring-[#C4A265] focus:border-transparent outline-none transition text-[#1A1A1A] bg-[#FDFAF7]"
-              placeholder="e.g. 10 or -5"
+              placeholder="e.g. 10"
               autoFocus
             />
             <p className="text-xs text-[#8B7355] mt-1">
-              Use positive numbers to add, negative to deduct
+              Enter a positive amount, then choose a direction.
             </p>
           </div>
 
           <div>
-            <label htmlFor="add-points-reason" className="block text-sm font-medium text-[#8B7355] mb-1">
+            <label htmlFor="adjust-points-reason" className="block text-sm font-medium text-[#8B7355] mb-1">
               Reason <span className="text-[#C4A265]">(optional)</span>
             </label>
             <input
-              id="add-points-reason"
+              id="adjust-points-reason"
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="w-full px-4 py-3 border border-[#E8E0D8] rounded-xl focus:ring-2 focus:ring-[#C4A265] focus:border-transparent outline-none transition text-[#1A1A1A] bg-[#FDFAF7]"
-              placeholder="e.g. Bonus for helping others"
+              placeholder="e.g. Bonus for helping out / Late submission penalty"
             />
           </div>
 
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => {
-                setPoints("");
-                setReason("");
-                setError("");
-                onClose();
-              }}
-              className="flex-1 py-3 border border-[#E8E0D8] text-[#8B7355] font-medium rounded-xl hover:bg-[#F5F0EB] transition cursor-pointer"
+              onClick={handleClose}
+              disabled={loading !== null}
+              className="flex-1 py-3 border border-[#E8E0D8] text-[#8B7355] font-medium rounded-xl hover:bg-[#F5F0EB] transition cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
             <button
+              type="button"
+              onClick={() => submit("deduct")}
+              disabled={loading !== null}
+              className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition disabled:opacity-50 cursor-pointer"
+            >
+              {loading === "deduct" ? "Deducting…" : "Deduct"}
+            </button>
+            <button
               type="submit"
-              disabled={loading}
+              disabled={loading !== null}
               className="flex-1 py-3 bg-[#1A1A1A] text-white font-semibold rounded-xl hover:bg-[#333] transition disabled:opacity-50 cursor-pointer"
             >
-              {loading ? "Adding..." : "Add Points"}
+              {loading === "add" ? "Adding…" : "Add"}
             </button>
           </div>
         </form>
