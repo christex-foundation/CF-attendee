@@ -296,12 +296,22 @@ export default function ProgressMap({
           badges={stats.badges}
           currentStreak={currentStreak}
         />
-        <Link
-          href="/leaderboard"
-          className="inline-flex items-center gap-1.5 mt-2 px-4 py-1.5 rounded-full bg-[#1A1A1A] border border-[#333] text-white text-xs font-semibold hover:bg-[#333] transition"
-        >
-          &#x1F3C6; Leaderboard
-        </Link>
+        <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+          <Link
+            href="/leaderboard"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1A1A1A] border border-[#333] text-white text-xs font-semibold hover:bg-[#333] transition"
+          >
+            &#x1F3C6; Leaderboard
+          </Link>
+          <a
+            href={`/api/student/${studentSlug}/export`}
+            download
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1A1A1A] border border-[#333] text-white text-xs font-semibold hover:bg-[#333] transition"
+            title="Download a CSV of your point history"
+          >
+            &#x2B07; Download Log
+          </a>
+        </div>
 
         {/* Progress Bar */}
         <div className="mt-3 w-full max-w-xs mx-auto">
